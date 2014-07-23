@@ -1,11 +1,11 @@
 #!/bin/sh 
 
 log() {
-	printf "${GREEN}do%$(((REDO_DEPTH+1)*2))s${BOLD}%s${PLAIN}\\n" "" "$1" >&2
+	printf "${GREEN}redo%$(((REDO_DEPTH+1)*2))s${BOLD}%s${PLAIN}\\n" "" "$1" >&2
 }
 
 err() {
-	printf "${RED}do%$(((REDO_DEPTH+1)*2))s${BOLD}%s${PLAIN}\\n" "" "$1" >&2
+	printf "${RED}redo%$(((REDO_DEPTH+1)*2))s${BOLD}%s${PLAIN}\\n" "" "$1" >&2
 }
 
 timestamp() {
@@ -76,7 +76,7 @@ if [ ${REDO_DEPTH:=0} -eq 0 ]; then
 	# default to target "all"
 	[ $# -eq 0 ] && set -- all 
 
-	if [ "$TERM" != "dumb" -a -t 2 ]; then
+	if [ -t 2 ] && [ "$TERM" != "dumb" ]; then
 		export GREEN='\033[32m'
 		export RED='\033[31m'
 		export BOLD='\033[1m'
@@ -85,18 +85,7 @@ if [ ${REDO_DEPTH:=0} -eq 0 ]; then
 
 	export REDO_TIMESTAMP=$(timestamp)
 
-	# FIXME
-	export PATH="$PATH:$(dirname $0)"
-
-#	for d in .redo .redo/bin
-#	do [ -d $d ] || mkdir $d
-#	done
-#
-#	REDO=$(realpath $0)
-#	ln -s $REDO .redo/bin/redo
-#	ln -s $REDO .redo/bin/redo-ifchange
-#	ln -s $(which true) .redo/bin/redo-ifcreate
-#	export PATH="$PATH:.redo/bin/"
+	export PATH="$PATH:$(dirname $(readlink --canonicalize $0))"
 fi
 
 for target in "$@"; do
