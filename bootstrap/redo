@@ -27,6 +27,13 @@ find_dofile_pwd() {
 	ext="$dofile"
 	until [ "$ext" = "do" ]; do
 		ext="${ext#*.}"
+
+		dofile="_.$ext"
+		if [ -e "$dofile" ]; then
+			printf %s\\n "$dofile"
+			return
+		fi
+
 		dofile="default.$ext"
 		if [ -e "$dofile" ]; then
 			printf %s\\n "$dofile"
