@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 log() {
 	printf "${GREEN}redo%$(((REDO_DEPTH+1)*2))s${BOLD}%s${PLAIN}\\n" "" "$1" >&2
@@ -21,7 +21,7 @@ find_dofile_pwd() {
 
 	if [ -e "$dofile" ]; then
 		printf %s\\n "$dofile"
-		return 0
+		return
 	fi
 
 	ext="$dofile"
@@ -30,11 +30,9 @@ find_dofile_pwd() {
 		dofile="default.$ext"
 		if [ -e "$dofile" ]; then
 			printf %s\\n "$dofile"
-			return 0
+			return
 		fi
 	done 
-
-	return 1
 }
 
 find_dofile() {
@@ -44,14 +42,12 @@ find_dofile() {
 	cd "${targetfile%/*}"
 	until [ "$PWD" = "/" ]; do
 		dofile="$(find_dofile_pwd ${targetfile##*/})"
-		if [ $? -eq 0 ]; then
+		if [ -n "$dofile" ]; then
 			printf %s/%s\\n "$PWD" "$dofile"
 			return
 		fi
 		cd ..
 	done
-
-	return 1
 }
 
 run_dofile() {
@@ -64,7 +60,7 @@ run_dofile() {
 	if [ "$line1" != "${line1#\#!}" ]; then
 		${line1#\#!} "$dofile" "$1" "$2" "$3"
 	else
-		sh "$dofile" "$1" "$2" "$3"
+		sh -e "$dofile" "$1" "$2" "$3"
 	fi
 }
 
@@ -145,18 +141,15 @@ for target in "$@"; do
 		trap "rm -f -- $tmpfile" 0 # EXIT
 	fi
 
-	run_dofile "$dofile" "$targetfile" "$basename" "$tmpfile" >| "$tmpfile"
-	rc=$?
-	if [ $rc -ne 0 ]; then
+	if run_dofile "$dofile" "$targetfile" "$basename" "$tmpfile" >| "$tmpfile"; then
+		# some targets such as 'all' or 'clean' do not produce output
+		if [ -s "$tmpfile" ]; then
+			mv "$tmpfile" "$targetfile"
+		fi
+	else
+		rc=$?
 		err "${dofile##*/} returned $rc"
 		exit $rc
 	fi
-
-	# dofile did not write anything to tmpfile
-	# this happens with targets that do not create files
-	# such as 'all' or 'clean'
-	[ -s "$tmpfile" ] || exit 0
-
-	mv "$tmpfile" "$targetfile"
-	) || exit $?
+	)
 done
