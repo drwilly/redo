@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 
 log() {
 	printf "${GREEN}redo%$(((REDO_DEPTH+1)*2))s${BOLD}%s${PLAIN}\\n" "" "$1" >&2
@@ -17,25 +17,22 @@ timestamp() {
 
 find_dofile_pwd() {
 	local dofile="$1.do"
+	local ext
 
 	if [ -e "$dofile" ]; then
 		printf %s\\n "$dofile"
-		return
+		return 0
 	fi
 
-	dofile="default.$1.do"
-	until [ "$dofile" = "default.do" ]; do
-		dofile="default.${dofile#default.*.}"
+	ext="$dofile"
+	until [ "$ext" = "do" ]; do
+		ext="${ext#*.}"
+		dofile="default.$ext"
 		if [ -e "$dofile" ]; then
 			printf %s\\n "$dofile"
-			return
+			return 0
 		fi
 	done 
-
-	if [ -e "$dofile" ]; then
-		printf %s\\n "$dofile"
-		return
-	fi
 
 	return 1
 }
@@ -103,7 +100,7 @@ for target in "$@"; do
 	
 	if [ -z "$dofile" ]; then
 		# no dofile to build target
-		if [ -e "$target" ]; then
+		if [ -e "$target" ] && [ "${0##*/}" = "redo-ifchange" ]; then
 			# target exists -> assume target is a source file
 			continue
 		else
@@ -112,24 +109,22 @@ for target in "$@"; do
 		fi
 	fi
 
-	if [ -z "${dofile##*/default.*.do}" ]; then
-		ext="${dofile##*/}"
-		ext="${ext##default.}"
-		ext="${ext%.do}"
-	else
-		ext="${target##*.}"
-	fi
+	log "${dofile##*/}:$target"
+
 	basename="${target##*/}"
-	basename="${basename%.$ext}"
+	if [ "${dofile##*/}" = "${basename}.do" ]; then
+		basename="${basename%.*}"
+	else
+		ext="${dofile##*/}"
+		ext="${ext#*.}"
+		ext="${ext%.do}"
+		basename="${basename%.$ext}"
+		unset ext
+	fi
 	tmpfile="${targetfile}.part"
 
-	log "${dofile##*/}:$target"
 	(
 	export REDO_DEPTH=$((REDO_DEPTH + 1))
-
-	# ------------- HUP INT QUIT TERM
-	trap "exit 1"   1   2   3    15
-	trap "rm -f -- $tmpfile" 0 # EXIT 
 
 	cd "${dofile%/*}"
 
@@ -144,12 +139,16 @@ for target in "$@"; do
 			sleep 1
 		done
 		exit 0
+	else
+		# ------------- HUP INT QUIT TERM
+		trap "exit 1"   1   2   3    15
+		trap "rm -f -- $tmpfile" 0 # EXIT
 	fi
 
 	run_dofile "$dofile" "$targetfile" "$basename" "$tmpfile" >| "$tmpfile"
 	rc=$?
 	if [ $rc -ne 0 ]; then
-		err "$(basename $dofile) returned $rc"
+		err "${dofile##*/} returned $rc"
 		exit $rc
 	fi
 
