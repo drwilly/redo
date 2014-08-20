@@ -1,4 +1,6 @@
 #!/bin/sh -e
+# CREDO - An implementation of djb's redo
+# Copyright (c) 2014  Wilke Schwiedop
 
 log() {
 	printf "${GREEN}redo%$(((REDO_DEPTH+1)*2))s${BOLD}%s${PLAIN}\\n" "" "$1" >&2
