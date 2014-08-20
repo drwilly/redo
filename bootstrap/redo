@@ -85,12 +85,12 @@ if [ ${REDO_DEPTH:=0} -eq 0 ]; then
 
 	export REDO_TIMESTAMP=$(timestamp)
 
-	export PATH="$PATH:$(dirname $(readlink --canonicalize $0))"
+	export PATH="$(dirname $(readlink --canonicalize $0)):$PATH"
 fi
 
 for target in "$@"; do
 	if [ -e "$target" ] && [ "$(stat --format %Y $target)" -ge $REDO_TIMESTAMP ]; then
-		# target has been created during redo run
+		# target has been modified during this redo run
 		continue
 	fi
 
