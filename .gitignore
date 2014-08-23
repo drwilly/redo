@@ -1,0 +1,9 @@
+# temporary files
+*.o
+*.predeps
+
+# utilities
+cc
+
+# binaries
+redo
