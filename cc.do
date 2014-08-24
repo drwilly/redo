@@ -11,5 +11,5 @@ INC="$INC -I src/"
 
 cat <<-EOF
 	#!/bin/sh
-	exec $CC -std=c11 $CFLAGS $INC \$@
+	exec $CC -c -std=c11 $CFLAGS $INC \$@
 EOF

@@ -4,6 +4,7 @@
 
 # utilities
 cc
+ld
 
 # binaries
 redo
