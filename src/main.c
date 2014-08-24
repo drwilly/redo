@@ -46,30 +46,16 @@ options(char *targetv[], int argc, char *argv[]) {
 
 void
 redo_err(const char *fmt, va_list params) {
-	char prefixfmt[16];
-	snprintf(prefixfmt, len(prefixfmt), "%%-%ds", 4 + (2 * (1 + redo_getenv_int(REDO_ENV_DEPTH, 0))));
-
-	char prefix[32];
-	snprintf(prefix, len(prefix), prefixfmt, "redo");
-	
 	char msg[4096];
 	vsnprintf(msg, len(msg), fmt, params);
-
-	fprintf(stderr, "\033[31m%s\033[1m%s\033[m\n", prefix, msg);
+	fprintf(stderr, "\033[31m%-*s\033[1m%s\033[m\n", 4 + (2 * (1 + redo_getenv_int(REDO_ENV_DEPTH, 0))), "redo", msg);
 }
 
 void
 redo_info(const char *fmt, va_list params) {
-	char prefixfmt[16];
-	snprintf(prefixfmt, len(prefixfmt), "%%-%ds", 4 + (2 * (1 + redo_getenv_int(REDO_ENV_DEPTH, 0))));
-
-	char prefix[32];
-	snprintf(prefix, len(prefix), prefixfmt, "redo");
-	
 	char msg[4096];
 	vsnprintf(msg, len(msg), fmt, params);
-
-	fprintf(stderr, "\033[32m%s\033[1m%s\033[m\n", prefix, msg);
+	fprintf(stderr, "\033[32m%-*s\033[1m%s\033[m\n", 4 + (2 * (1 + redo_getenv_int(REDO_ENV_DEPTH, 0))), "redo", msg);
 }
 
 int
