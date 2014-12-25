@@ -23,11 +23,11 @@ options(char *targetv[], int argc, char *argv[]) {
 		} else if(strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
 			// TODO
 		} else if(strcmp(argv[i], "--jobs") == 0 || strcmp(argv[i], "-j") == 0) {
-			int jobs = atoi(argv[++i]);
-			if(jobs >= 0) {
-				redo_setenv_int(REDO_ENV_JOBS, jobs);
-			} else {
+			int jobs = 0;
+			if(i+1 < argc && strspn(argv[i+1], "0123456789") == strlen(argv[i+1])) {
+				jobs = atoi(argv[++i]);
 			}
+			redo_setenv_int(REDO_ENV_JOBS, jobs);
 		} else if(strcmp(argv[i], "--keep-going") == 0 || strcmp(argv[i], "-k") == 0) {
 			redo_setenv_int(REDO_ENV_KEEPGOING, 1);
 		} else if(strcmp(argv[i], "--debug") == 0 || strcmp(argv[i], "-d") == 0) {
