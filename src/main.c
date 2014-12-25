@@ -35,7 +35,11 @@ options(char *targetv[], int argc, char *argv[]) {
 		} else if(strcmp(argv[i], "--no-color") == 0) {
 			redo_setenv_int(REDO_ENV_NOCOLOR, 1);
 		} else if(strcmp(argv[i], "--shuffle") == 0) {
-			redo_setenv_int(REDO_ENV_SHUFFLE, 1);
+			int seed = 1;
+			if(i+1 < argc && strspn(argv[i+1], "0123456789") == strlen(argv[i+1])) {
+				seed = atoi(argv[++i]);
+			}
+			redo_setenv_int(REDO_ENV_SHUFFLE, seed);
 		} else if(strcmp(argv[i], "--") == 0) {
 			option_end = 1;
 		}
@@ -74,6 +78,19 @@ main(int argc, char *argv[]) {
 		set_error_routine(&redo_err);
 		//set_warning_routine(&redo_);
 		set_info_routine(&redo_info);
+	}
+
+	unsigned int seed = redo_getenv_int(REDO_ENV_SHUFFLE, 0);
+	if(seed) {
+		srand(seed);
+		for(int i = targetc - 1; i >= 1; i--) {
+			int j = rand() % (i + 1);
+			if(i == j)
+				continue;
+			char *tmp = targetv[i];
+			targetv[i] = targetv[j];
+			targetv[j] = tmp;
+		}
 	}
 
 	char *exe = strrchr(argv[0], '/');
