@@ -2,14 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "util.h"
 #include "libc_wrapper.h"
 
 #include "reporting.h"
 #include "environment.h"
 
 #include "redo.h"
-
-#define len(x) (sizeof(x) / sizeof(*x))
 
 int
 options(char *targetv[], int argc, char *argv[]) {
@@ -110,6 +109,7 @@ main(int argc, char *argv[]) {
 		}
 	} else if(strcmp(exe, "redo-ifchange") == 0) {
 		int parent_db = redo_getenv_int(REDO_ENV_DB, -1);
+		fcntl(parent_db, F_SETFD, FD_CLOEXEC);
 		for(int i = 0; i < targetc; i++) {
 			rv |= redo_ifchange(targetv[i], parent_db);
 		}
@@ -120,6 +120,7 @@ main(int argc, char *argv[]) {
 		}
 
 		int parent_db = redo_getenv_int(REDO_ENV_DB, -1);
+		fcntl(parent_db, F_SETFD, FD_CLOEXEC);
 		for(int i = 0; i < targetc; i++) {
 			rv |= redo_ifcreate(targetv[i], parent_db);
 		}

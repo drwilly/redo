@@ -5,15 +5,14 @@
 #include <sys/uio.h>
 #include <string.h>
 
+#include "util.h"
+
 #include "reporting.h"
 #include "libc_wrapper.h"
 #include "path.h"
 #include "hash.h"
 
 #include "predeps.h"
-
-
-#define len(x) (sizeof(x) / sizeof(*x))
 
 struct predep {
 	char type;
@@ -85,6 +84,7 @@ predep_write(int db_fd, struct predep *dep) {
 
 void
 predep_record(int db_fd, const char type, const char *path) {
+//fprintf(stderr, "recording '%s'\n", path);
 	struct predep dep;
 
 	dep.type = type;
@@ -105,6 +105,10 @@ predep_created(struct predep *dep) {
 static
 int
 predep_changed_source(struct predep *dep) {
+	if(!path_exists(dep->path)) {
+		return 1;
+	}
+
 	unsigned char filehash[len(dep->hash)];
 	hash(dep->path, filehash);
 
@@ -114,16 +118,13 @@ predep_changed_source(struct predep *dep) {
 static
 int
 predep_changed_target(struct predep *dep) {
-	if(predep_changed_source(dep)) {
-		return 1;
-	}
-
-	return predeps_changed(dep->path);
+	return predep_changed_source(dep) || predeps_changed(dep->path);
 }
 
 static
 int
 predep_modified(struct predep *dep) {
+//fprintf(stderr, "checking db entry '%s'\n", dep->path);
 	switch(dep->type) {
 	case 'n':
 		return predep_created(dep);
@@ -146,11 +147,13 @@ predeps_changed(const char *target) {
 
 	int modified = 0;
 	int db_fd = xopen(dbfile, O_RDONLY);
+//fprintf(stderr, "checking dbfile '%s'\n", dbfile);
 	for(struct predep dep; predep_read(db_fd, &dep); ) {
 		modified = predep_modified(&dep);
-if(modified) fprintf(stderr, "%s [%d] '%c' %s\n", dbfile, modified, dep.type, dep.path);
-		if(modified)
+		if(modified) {
+//fprintf(stderr, "%s [%d] '%c' %s\n", dbfile, modified, dep.type, dep.path);
 			break;
+		}
 	}
 	xclose(db_fd);
 

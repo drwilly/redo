@@ -19,7 +19,6 @@ xcalloc(size_t nmemb, size_t size) {
 int
 xopen(const char *pathname, int flags, ...) {
 	int rv;
-
 	if(flags & (O_CREAT|O_TMPFILE)) {
 		va_list params;
 		va_start(params, flags);

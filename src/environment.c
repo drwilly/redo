@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "util.h"
+
 #include "reporting.h"
 #include "environment.h"
-
-#define len(x) (sizeof(x) / sizeof(*x))
 
 int
 redo_getenv_int(const char *k, int def) {
