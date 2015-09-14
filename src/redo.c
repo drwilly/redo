@@ -32,7 +32,7 @@ read_hashbang(const char *file) {
 	ssize_t nbytes_read = read(fd, line1, len(line1));
 	xclose(fd);
 
-	if(nbytes_read < 3 || line1[0] != '#' | line1[1] != '!') {
+	if(nbytes_read < 3 || line1[0] != '#' || line1[1] != '!') {
 		// not a hashbang
 		return NULL;
 	}
