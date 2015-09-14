@@ -1,10 +1,10 @@
 redo-ifchange config.sh
 
-chmod +x $3
-
 . ./config.sh
+
+chmod +x $3
 
 cat <<-EOF
 	#!/bin/sh
-	exec $CC $CFLAGS $LIB $LIBPATH \$@
+	exec $CC $LDFLAGS \$@ $LIB $LIBPATH
 EOF
