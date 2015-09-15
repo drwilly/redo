@@ -42,12 +42,8 @@ predep_read(int db_fd, struct predep *dep) {
 	}
 
 	ssize_t nbytes_read = readv(db_fd, iov, len(iov));
-	if(nbytes_read < nbytes_expected) {
-		if(nbytes_read == 0) {
-			return nbytes_read;
-		} else {
-			die_errno("error during readv(%d, %p, %lu)", db_fd, iov, len(iov));
-		}
+	if(nbytes_read < nbytes_expected && nbytes_read > 0) {
+		die_errno("error during readv(%d, %p, %lu)", db_fd, iov, len(iov));
 	}
 
 	return nbytes_read;
