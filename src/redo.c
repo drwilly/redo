@@ -68,7 +68,9 @@ foo(struct buildparams *bp, const char *target) {
 	bp->dofile = strrchr(bp->workdir, '/') + 1;
 	strcpy(bp->basename, bp->dofile);
 
-	for(int MAXDEPTH = 0; MAXDEPTH >= 0; MAXDEPTH--) { // TODO
+	// TODO
+	// MAXDEPTH is the number of parent directories we visit
+	for(int MAXDEPTH = 0; MAXDEPTH >= 0; MAXDEPTH--) {
 		sprintf(bp->dofile, "%s.do", bp->basename);
 		if(path_exists(bp->workdir)) {
 			// split workdir / dofile
@@ -181,7 +183,7 @@ redo(const char *target) {
 
 	struct buildparams bp;
 	if(foo(&bp, target) == 0) {
-		rv |= build(target, &bp);
+		rv = build(target, &bp);
 	} else {
 		error("No dofile for target '%s'. Stop.", target);
 		if(0 /* db-exists */) {
@@ -197,24 +199,26 @@ redo(const char *target) {
 int
 redo_ifchange(const char *target, int parent_db) {
 	int rv = 0;
-	/* There is no way to distinguish between virtual targets
-	 * and regular targets which have been deleted.
-	 * Thus, always redo if the target does not exists.
-	 */
-	if(path_exists(target) && !predeps_changed(target)) {
-		return 0;
-	}
 
 	struct buildparams bp;
 	if(foo(&bp, target) == 0) {
-		rv |= build(target, &bp);
-		predep_record(parent_db, 't', target);
+		if(!path_exists(target)) {
+			/* rebuild (virtual target or clean build) */
+			rv = build(target, &bp);
+		} else if(predeps_changed(target)) {
+			/* rebuild (deps dirty) */
+			rv = build(target, &bp);
+		}
+		if(rv == 0) {
+			predep_record(parent_db, 't', target);
+		}
 	} else if(path_exists(target)) {
 		predep_record(parent_db, 's', target);
 	} else {
 		error("No dofile for target '%s'. Stop.", target);
 		if(0 /* db-exists */) {
-			warn("no dofile, but dbfile?");
+			// no rule, but dbfile?
+			warn("");
 		}
 		rv = 1;
 	}
