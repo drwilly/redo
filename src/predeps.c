@@ -85,11 +85,20 @@ predep_record(int db_fd, const char type, const char *path) {
 
 	dep.type = type;
 	strncpy(dep.path, path, len(dep.path));
-	if(type == 's' || type == 't') {
+	if(type == 't' || type == 's') {
 		hash(path, dep.hash);
 	}
 
 	predep_write(db_fd, &dep);
+}
+
+static
+int
+predep_hash_changed(struct predep *dep) {
+	unsigned char filehash[len(dep->hash)];
+	hash(dep->path, filehash);
+
+	return memcmp(dep->hash, filehash, len(dep->hash));
 }
 
 static
@@ -101,20 +110,13 @@ predep_created(struct predep *dep) {
 static
 int
 predep_changed_source(struct predep *dep) {
-	if(!path_exists(dep->path)) {
-		return 1;
-	}
-
-	unsigned char filehash[len(dep->hash)];
-	hash(dep->path, filehash);
-
-	return memcmp(dep->hash, filehash, len(dep->hash));
+	return !path_exists(dep->path) || predep_hash_changed(dep);
 }
 
 static
 int
 predep_changed_target(struct predep *dep) {
-	return predep_changed_source(dep) || predeps_changed(dep->path);
+	return !path_exists(dep->path) || predep_hash_changed(dep) || predeps_changed(dep->path);
 }
 
 static
@@ -122,12 +124,12 @@ int
 predep_modified(struct predep *dep) {
 //fprintf(stderr, "checking db entry '%s'\n", dep->path);
 	switch(dep->type) {
-	case 'n':
-		return predep_created(dep);
-	case 's':
-		return predep_changed_source(dep);
 	case 't':
 		return predep_changed_target(dep);
+	case 's':
+		return predep_changed_source(dep);
+	case 'n':
+		return predep_created(dep);
 	default:
 		die("invalid predep type '%c'", dep->type);
 	}
