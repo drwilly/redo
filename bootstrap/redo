@@ -12,14 +12,15 @@ err() {
 
 timestamp() {
 	date +%s || \
-		echo $((`date -u \
-		+"((%Y-1600)*365+(%Y-1600)/4-(%Y-1600)/100+(%Y-1600)/400+%-j-135140) \
-		*86400+%-H*3600+%-M*60+%-S"`))
+		printf %d\\n $((
+		$(date -u +"((%Y-1600)*365+(%Y-1600)/4-(%Y-1600)/100+(%Y-1600)/400+%-j-135140)*86400+%-H*3600+%-M*60+%-S")
+		))
 }
 
 find_dofile_pwd() {
 	local dofile="$1.do"
 	local ext
+	shift
 
 	if [ -e "$dofile" ]; then
 		printf %s\\n "$dofile"
@@ -47,6 +48,7 @@ find_dofile_pwd() {
 find_dofile() {
 	local targetfile="$1"
 	local dofile
+	shift
 
 	cd "${targetfile%/*}"
 	until [ "$PWD" = "/" ]; do
@@ -62,7 +64,6 @@ find_dofile() {
 run_dofile() {
 	local dofile="$1"
 	local line1
-
 	shift
 
 	read line1 < $dofile
