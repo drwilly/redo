@@ -63,8 +63,8 @@ redo_info(const char *fmt, va_list params) {
 
 int
 main(int argc, char *argv[]) {
-	char *targetv[argc];
 	int targetc;
+	char *targetv[argc];
 	
 	targetc = options(targetv, argc, argv);
 
