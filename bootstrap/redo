@@ -31,17 +31,13 @@ find_dofile_pwd() {
 	until [ "$ext" = "do" ]; do
 		ext="${ext#*.}"
 
-		dofile="_.$ext"
-		if [ -e "$dofile" ]; then
-			printf %s\\n "$dofile"
-			return
-		fi
-
-		dofile="default.$ext"
-		if [ -e "$dofile" ]; then
-			printf %s\\n "$dofile"
-			return
-		fi
+		for wildcard in _ default; do
+			dofile="${wildcard}.$ext"
+			if [ -e "$dofile" ]; then
+				printf %s\\n "$dofile"
+				return
+			fi
+		done
 	done 
 }
 
