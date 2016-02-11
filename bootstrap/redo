@@ -69,7 +69,7 @@ run_dofile() {
 	if [ "$line1" != "${line1#\#!}" ]; then
 		${line1#\#!} "$dofile" "$1" "$2" "$3"
 	else
-		sh -e "$dofile" "$1" "$2" "$3"
+		( . "$dofile" )
 	fi
 }
 
