@@ -8,3 +8,5 @@ ld
 
 # binaries
 redo
+redo-ifchange
+redo-ifcreate

@@ -1,24 +1,50 @@
-#include <stdio.h>
-#include <limits.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/uio.h>
-#include <string.h>
+#include <skalibs/stddjb.h>
+#include <skalibs/allreadwrite.h> // TODO figure out how to use bufalloc
+#include <skalibs/stdcrypto.h>
 
-#include "util.h"
+#include <sys/uio.h>
 
 #include "reporting.h"
-#include "libc_wrapper.h"
 #include "path.h"
-#include "hash.h"
 
 #include "predeps.h"
+
+// TODO remove
+#define len(x) (sizeof(x) / sizeof(*x))
 
 struct predep {
 	char type;
 	char path[PATH_MAX];
-	unsigned char hash[REDO_HASH_LENGTH];
+	char hash[20];
 };
+
+static
+void
+file_compute_hash(const char *file, char *digest) {
+	int fd = open_read(file);
+	size_t count;
+#if 1
+	struct stat sb;
+	if(fstat(fd, &sb) != 0) {
+		die_errno("stat of %s failed", file);
+	}
+	count = sb.st_blksize;
+#else
+	count = 4096;
+#endif
+
+	SHA1Schedule ctx;
+	unsigned int messagelen;
+	char message[count];
+
+	sha1_init(&ctx);
+	while((messagelen = fd_read(fd, message, count)) > 0) {
+		sha1_update(&ctx, message, messagelen);
+	}
+	sha1_final(&ctx, digest);
+
+	fd_close(fd);
+}
 
 static
 ssize_t
@@ -43,7 +69,9 @@ predep_read(int db_fd, struct predep *dep) {
 
 	ssize_t nbytes_read = readv(db_fd, iov, len(iov));
 	if(nbytes_read < nbytes_expected && nbytes_read > 0) {
-		die_errno("error during readv(%d, %p, %lu)", db_fd, iov, len(iov));
+		die_errno("error during readv(%d, %p, %lu): expected=%d actual=%d",
+				db_fd, iov, len(iov), nbytes_expected, nbytes_read
+			);
 	}
 
 	return nbytes_read;
@@ -72,7 +100,9 @@ predep_write(int db_fd, struct predep *dep) {
 	
 	ssize_t nbytes_written = writev(db_fd, iov, len(iov));
 	if(nbytes_written < nbytes_expected) {
-		die_errno("error during writev(%d, %p, %lu)", db_fd, iov, len(iov));
+		die_errno("error during writev(%d, %p, %lu): expected=%d actual=%d",
+				db_fd, iov, len(iov), nbytes_expected, nbytes_written
+			);
 	}
 
 	return nbytes_written;
@@ -80,13 +110,12 @@ predep_write(int db_fd, struct predep *dep) {
 
 void
 predep_record(int db_fd, const char type, const char *path) {
-//fprintf(stderr, "recording '%s'\n", path);
 	struct predep dep;
 
 	dep.type = type;
 	strncpy(dep.path, path, len(dep.path));
 	if(type == 't' || type == 's') {
-		hash(path, dep.hash);
+		file_compute_hash(path, dep.hash);
 	}
 
 	predep_write(db_fd, &dep);
@@ -95,8 +124,8 @@ predep_record(int db_fd, const char type, const char *path) {
 static
 int
 predep_hash_changed(struct predep *dep) {
-	unsigned char filehash[len(dep->hash)];
-	hash(dep->path, filehash);
+	char filehash[len(dep->hash)];
+	file_compute_hash(dep->path, filehash);
 
 	return memcmp(dep->hash, filehash, len(dep->hash));
 }
@@ -115,14 +144,22 @@ predep_changed_source(struct predep *dep) {
 
 static
 int
+openchecktargetclose(const char *target) {
+	static stralloc sa = STRALLOC_ZERO;
+	sa.len = 0;
+	predeps_sadbfile(&sa, target);
+	return predeps_opencheckclose(sa.s);
+}
+
+static
+int
 predep_changed_target(struct predep *dep) {
-	return !path_exists(dep->path) || predep_hash_changed(dep) || predeps_changed(dep->path);
+	return !path_exists(dep->path) || predep_hash_changed(dep) || openchecktargetclose(dep->path);
 }
 
 static
 int
 predep_modified(struct predep *dep) {
-//fprintf(stderr, "checking db entry '%s'\n", dep->path);
 	switch(dep->type) {
 	case 't':
 		return predep_changed_target(dep);
@@ -136,24 +173,33 @@ predep_modified(struct predep *dep) {
 }
 
 int
-predeps_changed(const char *target) {
-	char dbfile[PATH_MAX];
-	snprintf(dbfile, PATH_MAX, "%s.predeps", target);
-	if(!path_exists(dbfile)) {
-		return 1;
-	}
-
+predeps_changed(int db_fd) {
 	int modified = 0;
-	int db_fd = xopen(dbfile, O_RDONLY);
-//fprintf(stderr, "checking dbfile '%s'\n", dbfile);
 	for(struct predep dep; predep_read(db_fd, &dep); ) {
 		modified = predep_modified(&dep);
 		if(modified) {
-//fprintf(stderr, "%s [%d] '%c' %s\n", dbfile, modified, dep.type, dep.path);
 			break;
 		}
 	}
-	xclose(db_fd);
 
 	return modified;
+}
+
+int
+predeps_opencheckclose(const char *file) {
+	int fd = open_read(file);
+	if(fd == -1) {
+		return 1;
+	}
+	int changed = predeps_changed(fd);
+	fd_close(fd);
+
+	return changed;
+}
+
+int
+predeps_sadbfile(stralloc *sa, const char *target) {
+	stralloc_cats(sa, target);
+	stralloc_cats(sa, ".predeps");
+	return 0;
 }

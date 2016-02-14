@@ -5,4 +5,4 @@ CFLAGS="-g -O0 -Wall -pedantic"
 CFLAGS="$CFLAGS -D_GNU_SOURCE"
 
 INC=""
-LIB="-lpolarssl"
+LIBPATH=""

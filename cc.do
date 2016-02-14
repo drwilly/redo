@@ -2,8 +2,7 @@ redo-ifchange config.sh
 
 . ./config.sh
 
-CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200809L"
-CFLAGS="$CFLAGS -D_ISOC11_SOURCE"
+#CFLAGS="$CFLAGS -D_"
 
 INC="$INC -I src/"
 

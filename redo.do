@@ -1,6 +1,11 @@
-# let's for sanity's sake assume that source files
-# do not contain any whitespace or other funky characters
-OBJ=$(find src/ -name '*.c' -printf "%P\n" | sed -e 's/.c$/.o/')
+OBJ=$(sed -e '/^$/d' <<-EOF
+	environment.o
+	path.o
+	predeps.o
+	reporting.o
+	$2.o
+EOF
+)
 
 redo-ifchange ld $OBJ
 

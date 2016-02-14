@@ -1,8 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "util.h"
-
 #include "reporting.h"
 #include "environment.h"
 
@@ -15,7 +13,7 @@ redo_getenv_int(const char *k, int def) {
 void
 redo_setenv_int(const char *k, int v) {
 	char buf[16];
-	snprintf(buf, len(buf), "%d", v);
+	snprintf(buf, 16, "%d", v);
 	if(setenv(k, buf, 1) != 0) {
 		die_errno("setenv failed");
 	}
