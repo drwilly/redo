@@ -12,32 +12,23 @@
 
 static
 int
-redo_ifchange(const char *target) {
-	int rv = 0;
+changed(int argc, char *argv[]) {
+	int c = 1;
 	stralloc dbfile = STRALLOC_ZERO;
-	predeps_sadbfile(&dbfile, target);
-	stralloc_0(&dbfile);
+	for(int i = 1; i < argc; i++) {
+		dbfile.len = 0;
+		predeps_sadbfile(&dbfile, argv[i]);
+		stralloc_0(&dbfile);
 
-	if(path_exists(target) && !path_exists(dbfile.s)) {
-		predep_record(3, 's', target);
-	} else if(predeps_opencheckclose(dbfile.s)) {
-		pid_t pid = fork();
-		if(pid == -1) {
-			die_errno("fork failed");
-		} else if(!pid) {
-			execlp("redo", "redo", target, (char *)NULL);
-		} else {
-			int status;
-			waitpid_nointr(pid, &status, 0);
-			rv = WEXITSTATUS(status);
-			if(rv == 0) {
-				predep_record(3, 't', target);
-			}
+		if(path_exists(argv[i]) && !path_exists(dbfile.s)) {
+			predep_record(3, 's', argv[i]);
+		} else if(predeps_opencheckclose(dbfile.s)) {
+			argv[c++] = argv[i];
 		}
 	}
 	stralloc_free(&dbfile);
 
-	return rv;
+	return c;
 }
 
 static
@@ -59,19 +50,36 @@ options(int argc, char *argv[]) {
 
 int
 main(int argc, char *argv[]) {
-	argc = options(argc, argv);
-
 	fd_ensure_open(3, 1);
 	coe(3);
 
-	int rv = 0;
-	for(int i = 1; i < argc; i++) {
-		rv = redo_ifchange(argv[i]);
-		if(rv != 0) {
-			break;
-		}
-	}
-	fd_close(3);
+	argc = options(argc, argv);
+	argc = changed(argc, argv);
 
-	return rv;
+	if(argc <= 1)
+		return 0;
+
+	pid_t pid = fork();
+	if(pid == -1) {
+		die_errno("fork failed");
+		return -1; // unreached
+	} else if(!pid) {
+		char *newargv[argc+1];
+		newargv[0] = "redo";
+		for(int i = 1; i < argc; i++) {
+			newargv[i] = argv[i];
+		}
+		newargv[argc] = NULL;
+		return execvp(newargv[0], newargv);
+	} else {
+		int status;
+		waitpid_nointr(pid, &status, 0);
+		if(WEXITSTATUS(status) == 0) {
+			for(int i = 1; i < argc; i++) {
+				predep_record(3, 't', argv[i]);
+			}
+		}
+		fd_close(3);
+		return WEXITSTATUS(status);
+	}
 }
