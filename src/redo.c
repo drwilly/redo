@@ -70,25 +70,28 @@ redo(const char *target) {
 	}
 	stralloc_free(&workdir);
 
-	stralloc targetfile = STRALLOC_ZERO;
-	sabasename(&targetfile, target, str_len(target));
-
 	char tmpdbfile[] = "./tmp-XXXXXX";
 	int db_fd = mkstemp(tmpdbfile);
 	if(db_fd == -1) {
 		die_errno("Could not create temporary dbfile '%s'", tmpdbfile);
 	}
 
+	stralloc targetfile = STRALLOC_ZERO;
 	stralloc dofile = STRALLOC_ZERO;
 	stralloc basename = STRALLOC_ZERO;
 
-	unsigned int have_dofile = 0;
+	sabasename(&targetfile, target, str_len(target));
 
 	stralloc_copy(&dofile, &targetfile);
 	stralloc_cats(&dofile, ".do");
-	stralloc_copy(&basename, &targetfile);
+	stralloc_0(&dofile);
 
-	have_dofile = path_exists(dofile.s);
+	stralloc_copy(&basename, &targetfile);
+	stralloc_0(&basename);
+
+	stralloc_0(&targetfile);
+
+	unsigned int have_dofile = path_exists(dofile.s);
 	if(have_dofile) {
 		predep_record(db_fd, 's', dofile.s);
 	} else {
@@ -105,6 +108,7 @@ redo(const char *target) {
 			if(have_dofile) {
 				predep_record(db_fd, 's', dofile.s);
 				basename.len -= str_len(dofile.s) - str_len(wildcards[i]) - str_len(".do");
+				basename.len--;
 				stralloc_0(&basename);
 			} else {
 				predep_record(db_fd, 'n', dofile.s);
@@ -118,6 +122,7 @@ redo(const char *target) {
 		if(rv == 0) {
 			stralloc dbfile = STRALLOC_ZERO;
 			predeps_sadbfile(&dbfile, targetfile.s);
+			stralloc_0(&dbfile);
 			if(rename(tmpdbfile, dbfile.s) != 0) {
 				// TODO error
 			}

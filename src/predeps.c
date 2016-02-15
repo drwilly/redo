@@ -145,10 +145,13 @@ predep_changed_source(struct predep *dep) {
 static
 int
 openchecktargetclose(const char *target) {
-	static stralloc sa = STRALLOC_ZERO;
-	sa.len = 0;
+	stralloc sa = STRALLOC_ZERO;
 	predeps_sadbfile(&sa, target);
-	return predeps_opencheckclose(sa.s);
+	stralloc_0(&sa);
+	int changed = predeps_opencheckclose(sa.s);
+	stralloc_free(&sa);
+
+	return changed;
 }
 
 static

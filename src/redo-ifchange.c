@@ -16,6 +16,7 @@ redo_ifchange(const char *target) {
 	int rv = 0;
 	stralloc dbfile = STRALLOC_ZERO;
 	predeps_sadbfile(&dbfile, target);
+	stralloc_0(&dbfile);
 
 	if(path_exists(target) && !path_exists(dbfile.s)) {
 		predep_record(3, 's', target);

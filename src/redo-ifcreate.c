@@ -3,7 +3,6 @@
 #include <skalibs/djbunix.h>
 
 #include "reporting.h"
-#include "environment.h"
 #include "path.h"
 #include "predeps.h"
 
@@ -19,7 +18,6 @@ redo_ifcreate(const char *target) {
 int
 main(int argc, char *argv[]) {
 	fd_ensure_open(3, 1);
-	coe(3);
 
 	int rv = 0;
 	for(int i = 1; i < argc; i++) {
