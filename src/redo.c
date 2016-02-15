@@ -140,6 +140,9 @@ redo(const char *target) {
 		}
 	}
 
+	fd_close(3);
+
+	stralloc_free(&targetfile);
 	stralloc_free(&dofile);
 	stralloc_free(&basename);
 
