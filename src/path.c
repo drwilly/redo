@@ -1,27 +1,14 @@
 #include <unistd.h>
-#include <limits.h>
-#include <string.h>
 #include <errno.h>
 
 #include "reporting.h"
 #include "path.h"
 
-inline
-int
-is_dir_sep(char c) {
-	return c == '/';
-}
-
-inline
-int
-path_is_absolute(const char *path) {
-	return path && is_dir_sep(path[0]);
-}
-
+extern int rename(const char *, const char *);
 
 int
 path_exists(const char *path) {
-	if(access(path, R_OK) == 0) {
+	if(access(path, F_OK) == 0) {
 		return 1;
 	} else if(errno != ENOENT) {
 		die_errno("Could not access file '%s'", path);
@@ -32,5 +19,17 @@ path_exists(const char *path) {
 
 int
 try_unlink(const char *file) {
-	return unlink(file) == 0 || errno == ENOENT;
+	return unlink(file) == -1 && errno != ENOENT;
+}
+
+int
+try_link_tmpfile(const char *tmpfile, const char *dest) {
+	if(rename(tmpfile, dest) == -1) {
+		int err = errno;
+		unlink(tmpfile);
+		errno = err;
+		return -1;
+	}
+
+	return 0;
 }

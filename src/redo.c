@@ -44,11 +44,10 @@ run_dofile(const char *dofile, const char *targetfile, const char *basename) {
 
 		if(WEXITSTATUS(status) == 0) {
 			struct stat sb;
-			if(stat(tmpfile, &sb) != 0 || sb.st_size == 0) {
+			if(stat(tmpfile, &sb) == 0 && sb.st_size > 0) {
+				return try_link_tmpfile(tmpfile, targetfile);
+			} else {
 				try_unlink(tmpfile);
-			} else if(rename(tmpfile, targetfile) != 0) {
-				try_unlink(tmpfile);
-				return 1;
 			}
 		} else {
 			try_unlink(tmpfile);
@@ -60,9 +59,48 @@ run_dofile(const char *dofile, const char *targetfile, const char *basename) {
 
 static
 int
-redo(const char *target) {
-	int rv = 0;
+lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const char *target) {
+	sabasename(targetfile, target, str_len(target));
 
+	stralloc_copy(dofile, targetfile);
+	stralloc_cats(dofile, ".do");
+	stralloc_0(dofile);
+
+	stralloc_copy(basename, targetfile);
+	stralloc_0(basename);
+
+	stralloc_0(targetfile);
+
+	if(path_exists(dofile->s)) {
+		predep_record(3, 's', dofile->s);
+		return 1;
+	} else {
+		predep_record(3, 'n', dofile->s);
+	}
+
+	static const char *const wildcards[] = { "_", "default", NULL };
+	for(int i = 0; wildcards[i]; i++) {
+		stralloc_copys(dofile, wildcards[i]);
+		stralloc_cats(dofile, &targetfile->s[str_chr(targetfile->s, '.')]);
+		stralloc_cats(dofile, ".do");
+		stralloc_0(dofile);
+
+		if(path_exists(dofile->s)) {
+			basename->len = (basename->len-1) - ((dofile->len-1) - str_len(wildcards[i]) - str_len(".do"));
+			stralloc_0(basename);
+			predep_record(3, 's', dofile->s);
+			return 1;
+		} else {
+			predep_record(3, 'n', dofile->s);
+		}
+	}
+
+	return 0;
+}
+
+static
+int
+redo(const char *target) {
 	stralloc workdir = STRALLOC_ZERO;
 	sadirname(&workdir, target, str_len(target));
 	stralloc_0(&workdir);
@@ -72,64 +110,31 @@ redo(const char *target) {
 	stralloc_free(&workdir);
 
 	char tmpdbfile[] = "./tmp-XXXXXX";
-	int db_fd = mkstemp(tmpdbfile);
-	if(db_fd == -1) {
-		die_errno("Could not create temporary dbfile '%s'", tmpdbfile);
+	switch(mkstemp(tmpdbfile)) {
+	case  3: break; // ok
+	case -1: die_errno("Could not create temporary dbfile '%s'", tmpdbfile);
+	default: die("Could not create temporary dbfile '%s' on fd %d", tmpdbfile, 3);
 	}
 
 	stralloc targetfile = STRALLOC_ZERO;
 	stralloc dofile = STRALLOC_ZERO;
 	stralloc basename = STRALLOC_ZERO;
 
-	sabasename(&targetfile, target, str_len(target));
-
-	stralloc_copy(&dofile, &targetfile);
-	stralloc_cats(&dofile, ".do");
-	stralloc_0(&dofile);
-
-	stralloc_copy(&basename, &targetfile);
-	stralloc_0(&basename);
-
-	stralloc_0(&targetfile);
-
-	unsigned int have_dofile = path_exists(dofile.s);
-	if(have_dofile) {
-		predep_record(db_fd, 's', dofile.s);
-	} else {
-		predep_record(db_fd, 'n', dofile.s);
-
-		static const char *wildcards[] = { "_", "default", NULL };
-		for(int i = 0; !have_dofile && wildcards[i]; i++) {
-			stralloc_copys(&dofile, wildcards[i]);
-			stralloc_cats(&dofile, &targetfile.s[str_chr(targetfile.s, '.')]);
-			stralloc_cats(&dofile, ".do");
-			stralloc_0(&dofile);
-
-			have_dofile = path_exists(dofile.s);
-			if(have_dofile) {
-				predep_record(db_fd, 's', dofile.s);
-				basename.len -= str_len(dofile.s) - str_len(wildcards[i]) - str_len(".do");
-				basename.len--;
-				stralloc_0(&basename);
-			} else {
-				predep_record(db_fd, 'n', dofile.s);
-			}
-		}
-	}
-
-	if(have_dofile) {
+	int rv = 0;
+	if(lookup_params(&dofile, &targetfile, &basename, target)) {
 		info("%s:%s", dofile.s, target);
 		rv = run_dofile(dofile.s, targetfile.s, basename.s);
 		if(rv == 0) {
 			stralloc dbfile = STRALLOC_ZERO;
 			predeps_sadbfile(&dbfile, targetfile.s);
 			stralloc_0(&dbfile);
-			if(rename(tmpdbfile, dbfile.s) != 0) {
-				// TODO error
+			if(try_link_tmpfile(tmpdbfile, dbfile.s) != 0) {
+				die_errno("Could not store target dependencies in '%s'", dbfile.s);
 			}
 			stralloc_free(&dbfile);
 		} else {
 			error("%s:%s returned %d", dofile.s, target, rv);
+			try_unlink(tmpdbfile);
 		}
 	} else {
 		rv = 1;
