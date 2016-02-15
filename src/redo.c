@@ -65,6 +65,7 @@ redo(const char *target) {
 
 	stralloc workdir = STRALLOC_ZERO;
 	sadirname(&workdir, target, str_len(target));
+	stralloc_0(&workdir);
 	if(chdir(workdir.s) == -1) {
 		die_errno("Could not chdir to %s", workdir.s);
 	}
@@ -233,18 +234,18 @@ main(int argc, char *argv[]) {
 		}
 	}
 
+	if(argc <= 1)
+		return redo(REDO_DEFAULT_TARGET);
+
+	int rv = 0;
 	stralloc cwd = STRALLOC_ZERO;
 	sagetcwd(&cwd);
-	int rv = 0;
-	if(argc == 1) {
-		rv = redo(REDO_DEFAULT_TARGET);
-	} else {
-		for(int i = 1; i < argc; i++) {
-			rv = redo(argv[i]);
-			chdir(cwd.s);
-			if(rv != 0) {
-				break;
-			}
+	stralloc_0(&cwd);
+	for(int i = 1; i < argc; i++) {
+		rv = redo(argv[i]);
+		chdir(cwd.s);
+		if(rv != 0) {
+			break;
 		}
 	}
 	stralloc_free(&cwd);
