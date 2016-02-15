@@ -150,12 +150,15 @@ redo(const char *target) {
 
 static
 int
-options(char *targetv[], int argc, char *argv[]) {
-	int option_end = 0;
-	int targetc = 0;
+options(int argc, char *argv[]) {
+	int c = 1;
 	for(int i = 1; i < argc; i++) {
-		if(option_end || argv[i][0] != '-') {
-			targetv[targetc++] = argv[i];
+		if(argv[i][0] != '-') {
+			argv[c++] = argv[i];
+		} else if(strcmp(argv[i], "--") == 0) {
+			while(++i < argc) {
+				argv[c++] = argv[i];
+			}
 		} else if(strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
 			// TODO
 		} else if(strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
@@ -178,12 +181,10 @@ options(char *targetv[], int argc, char *argv[]) {
 				seed = atoi(argv[++i]);
 			}
 			redo_setenv_int(REDO_ENV_SHUFFLE, seed);
-		} else if(strcmp(argv[i], "--") == 0) {
-			option_end = 1;
 		}
 	}
 
-	return targetc;
+	return c;
 }
 
 void
@@ -209,10 +210,7 @@ redo_info(const char *fmt, va_list params) {
 
 int
 main(int argc, char *argv[]) {
-	int targetc;
-	char *targetv[argc];
-
-	targetc = options(targetv, argc, argv);
+	argc = options(argc, argv);
 
 	// TODO "nocolor" is slightly misleading because it changes the output format
 	if(redo_getenv_int(REDO_ENV_NOCOLOR, 1) != 0) {
@@ -225,24 +223,24 @@ main(int argc, char *argv[]) {
 	unsigned int seed = redo_getenv_int(REDO_ENV_SHUFFLE, 0);
 	if(seed) {
 		srand(seed);
-		for(int i = targetc - 1; i >= 1; i--) {
+		for(int i = argc - 1; i >= 1; i--) {
 			int j = rand() % (i + 1);
 			if(i == j)
 				continue;
-			char *tmp = targetv[i];
-			targetv[i] = targetv[j];
-			targetv[j] = tmp;
+			char *tmp = argv[i];
+			argv[i] = argv[j];
+			argv[j] = tmp;
 		}
 	}
 
 	stralloc cwd = STRALLOC_ZERO;
 	sagetcwd(&cwd);
 	int rv = 0;
-	if(targetc == 0) {
+	if(argc == 1) {
 		rv = redo(REDO_DEFAULT_TARGET);
 	} else {
-		for(int i = 0; i < targetc; i++) {
-			rv = redo(targetv[i]);
+		for(int i = 1; i < argc; i++) {
+			rv = redo(argv[i]);
 			chdir(cwd.s);
 			if(rv != 0) {
 				break;

@@ -40,8 +40,27 @@ redo_ifchange(const char *target) {
 	return rv;
 }
 
+static
+int
+options(int argc, char *argv[]) {
+	int c = 1;
+	for(int i = 1; i < argc; i++) {
+		if(argv[i][0] != '-') {
+			argv[c++] = argv[i];
+		} else if(strcmp(argv[i], "--") == 0) {
+			while(++i < argc) {
+				argv[c++] = argv[i];
+			}
+		}
+	}
+
+	return c;
+}
+
 int
 main(int argc, char *argv[]) {
+	argc = options(argc, argv);
+
 	fd_ensure_open(3, 1);
 	coe(3);
 
