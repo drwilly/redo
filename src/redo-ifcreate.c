@@ -11,7 +11,7 @@
 static
 int
 redo_ifcreate(const char *target) {
-	predep_record(3, 'n', target);
+	predep_record_absent(target);
 	return path_exists(target);
 }
 

@@ -21,7 +21,7 @@ changed(int argc, char *argv[]) {
 		stralloc_0(&dbfile);
 
 		if(path_exists(argv[i]) && !path_exists(dbfile.s)) {
-			predep_record(3, 's', argv[i]);
+			predep_record_source(argv[i]);
 		} else if(predeps_opencheckclose(dbfile.s)) {
 			argv[c++] = argv[i];
 		}
@@ -76,7 +76,7 @@ main(int argc, char *argv[]) {
 		waitpid_nointr(pid, &status, 0);
 		if(WEXITSTATUS(status) == 0) {
 			for(int i = 1; i < argc; i++) {
-				predep_record(3, 't', argv[i]);
+				predep_record_target(argv[i]);
 			}
 		}
 		fd_close(3);

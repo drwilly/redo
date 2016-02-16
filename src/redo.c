@@ -72,10 +72,10 @@ lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const 
 	stralloc_0(targetfile);
 
 	if(path_exists(dofile->s)) {
-		predep_record(3, 's', dofile->s);
+		predep_record_source(dofile->s);
 		return 1;
 	} else {
-		predep_record(3, 'n', dofile->s);
+		predep_record_absent(dofile->s);
 	}
 
 	static const char *const wildcards[] = { "_", "default", NULL };
@@ -88,10 +88,10 @@ lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const 
 		if(path_exists(dofile->s)) {
 			basename->len = (basename->len-1) - ((dofile->len-1) - str_len(wildcards[i]) - str_len(".do"));
 			stralloc_0(basename);
-			predep_record(3, 's', dofile->s);
+			predep_record_source(dofile->s);
 			return 1;
 		} else {
-			predep_record(3, 'n', dofile->s);
+			predep_record_absent(dofile->s);
 		}
 	}
 
