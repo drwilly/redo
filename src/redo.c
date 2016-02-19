@@ -35,7 +35,12 @@ run_dofile(const char *dofile, const char *targetfile, const char *basename) {
 		stralloc_cats(&dotslashdofile, dofile);
 		stralloc_0(&dotslashdofile);
 
-		return execlp(dotslashdofile.s, dofile, targetfile, basename, "/dev/fd/1", (char *)NULL);
+		if(execlp(dotslashdofile.s, dofile, targetfile, basename, "/dev/fd/1", (char *)NULL) == -1) {
+			die_errno("execlp('%s', '%s', '%s', '%s', '%s') failed",
+				dotslashdofile.s, dofile, targetfile, basename, "/dev/fd/1"
+			);
+		}
+		return -1; // unreached
 	} else {
 		fd_close(tmpfile_fd);
 

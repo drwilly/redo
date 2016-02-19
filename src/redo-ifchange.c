@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 #include <skalibs/djbunix.h>
 #include <skalibs/stralloc.h>
 
@@ -70,7 +68,10 @@ main(int argc, char *argv[]) {
 			newargv[i] = argv[i];
 		}
 		newargv[argc] = NULL;
-		return execvp(newargv[0], newargv);
+		if(execvp(newargv[0], newargv) == -1) {
+			die_errno("exec redo failed");
+		}
+		return -1; // unreached
 	} else {
 		int status;
 		waitpid_nointr(pid, &status, 0);
