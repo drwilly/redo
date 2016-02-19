@@ -6,9 +6,9 @@ redo-ifchange config.sh
 
 INC="$INC -I src/"
 
-chmod +x $3
+chmod +x "$3"
 
 cat <<-EOF
 	#!/bin/sh
-	exec $CC -c -std=c11 $CFLAGS $INC \$@
+	exec $CC -c -std=c11 $CFLAGS $INC "\$@"
 EOF
