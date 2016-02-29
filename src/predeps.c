@@ -1,55 +1,142 @@
 #include <skalibs/stddjb.h>
 #include <skalibs/buffer.h>
-#include <skalibs/stdcrypto.h>
+
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "reporting.h"
 #include "path.h"
+#include "tmpfile.h"
+
+#include "checksum.h"
 
 #include "predeps.h"
 
-static void sha1_file(const char *, char *);
+static
+int
+sadbfile(stralloc *sa, const char *target) {
+	if(!stralloc_cats(sa, target)) return 0;
+	if(!stralloc_cats(sa, ".predeps")) return 0;
+	return 1;
+}
 
-static void (*file_hash_compute)(const char *file, char *digest) = &sha1_file;
+int
+predeps_existfor(const char *target) {
+	stralloc dbfile = STRALLOC_ZERO;
+	sadbfile(&dbfile, target);
+	stralloc_0(&dbfile);
+	int exists = path_exists(dbfile.s);
+	stralloc_free(&dbfile);
+	return exists;
+}
 
-static const char *hexdigit = "0123456789abcdef";
+int
+predeps_linkfor(const int fd, const char *target) {
+	stralloc dbfile = STRALLOC_ZERO;
+	sadbfile(&dbfile, target);
+	stralloc_0(&dbfile);
+	int rv = tmpfile_link(fd, dbfile.s);
+	stralloc_free(&dbfile);
+	return rv;
+}
 
 static
-void
-sha1_file(const char *file, char *digest) {
+int
+predep_created(const char *file) {
+	return path_exists(file);
+}
+
+static
+int
+predep_changed_source(const char *file, const char *checksum_str) {
+	return !path_exists(file) || file_checksum_changed(file, checksum_str);
+}
+
+static
+int
+predep_changed_target(const char *file, const char *checksum_str) {
+	return !path_exists(file) || file_checksum_changed(file, checksum_str) || predeps_changedfor(file);
+}
+
+static
+int
+predeps_changed(int db_fd) {
+	char buf[BUFFER_INSIZE];
+	buffer b = BUFFER_INIT(&buffer_read, db_fd, buf, BUFFER_INSIZE);
+
+	stralloc ln = STRALLOC_ZERO;
+	int changed = 0;
+	int r;
+	while(!changed && (r = skagetln(&b, &ln, '\n')) > 0) {
+		ln.s[ln.len-1] = '\0';
+		char *dep[3]; // FIXME
+		int i = 0;
+		dep[0] = ln.s;
+		i = str_chr(dep[0], '\t');
+		dep[0][i] = '\0';
+		i++;
+		dep[1] = &dep[0][i];
+		i = str_chr(&ln.s[i], '\t');
+		dep[1][i] = '\0';
+		i++;
+		dep[2] = &dep[1][i];
+		switch(ln.s[0]) {
+		case 't':
+			if(str_diff(dep[0], "target")) die("" /* TODO */);
+			changed = predep_changed_target(dep[1], dep[2]);
+			break;
+		case 's':
+			if(str_diff(dep[0], "source")) die("" /* TODO */);
+			str_diff(dep[0], "source");
+			changed = predep_changed_source(dep[1], dep[2]);
+			break;
+		case 'a':
+			if(str_diff(dep[0], "absent")) die("" /* TODO */);
+			changed = predep_created(dep[1]);
+			break;
+		default:
+			die("" /* TODO */);
+		}
+		ln.len = 0;
+	}
+	stralloc_free(&ln);
+
+	if(r == -1) die("");
+
+	return changed;
+}
+
+static
+int
+predeps_opencheckclose(const char *file) {
 	int fd = open_read(file);
-	size_t count;
-#if 1
-	struct stat sb;
-	if(fstat(fd, &sb) != 0) {
-		die_errno("stat of %s failed", file);
+	if(fd == -1) {
+		die_errno("open_read('%s') failed", file);
 	}
-	count = sb.st_blksize;
-#else
-	count = 4096;
-#endif
-
-	SHA1Schedule ctx;
-	unsigned int messagelen;
-	char message[count];
-
-	sha1_init(&ctx);
-	while((messagelen = fd_read(fd, message, count)) > 0) {
-		sha1_update(&ctx, message, messagelen);
-	}
-	sha1_final(&ctx, digest);
-
+	int changed = predeps_changed(fd);
 	fd_close(fd);
+
+	return changed;
+}
+
+int
+predeps_changedfor(const char *target) {
+	stralloc sa = STRALLOC_ZERO;
+	sadbfile(&sa, target);
+	stralloc_0(&sa);
+	int changed = predeps_opencheckclose(sa.s);
+	stralloc_free(&sa);
+
+	return changed;
 }
 
 size_t
 predep_record_target(const char *file) {
-	unsigned char digest[20];
-	file_hash_compute(file, digest);
-	char digest_str[2*20];
-	for(int i = 0; i < 20; i++) {
-		digest_str[2*i+0] = hexdigit[(digest[i] & 0xf0) >> 4];
-		digest_str[2*i+1] = hexdigit[(digest[i] & 0x0f) >> 0];
-	}
+	unsigned char checksum[20];
+	char checksum_str[2*20];
+	file_checksum_compute(file, checksum);
+	hexstring_from_checksum(checksum_str, checksum);
+
 	struct iovec iov[] = {
 		{
 			.iov_base = "target",
@@ -64,7 +151,7 @@ predep_record_target(const char *file) {
 			.iov_base = "\t",
 			.iov_len = 1,
 		}, {
-			.iov_base = digest_str,
+			.iov_base = checksum_str,
 			.iov_len = 2*20,
 		}, {
 			.iov_base = "\n",
@@ -77,13 +164,11 @@ predep_record_target(const char *file) {
 
 size_t
 predep_record_source(const char *file) {
-	unsigned char digest[20];
-	file_hash_compute(file, digest);
-	char digest_str[2*20];
-	for(int i = 0; i < 20; i++) {
-		digest_str[2*i+0] = hexdigit[(digest[i] & 0xf0) >> 4];
-		digest_str[2*i+1] = hexdigit[(digest[i] & 0x0f) >> 0];
-	}
+	unsigned char checksum[20];
+	char checksum_str[2*20];
+	file_checksum_compute(file, checksum);
+	hexstring_from_checksum(checksum_str, checksum);
+
 	struct iovec iov[] = {
 		{
 			.iov_base = "source",
@@ -98,7 +183,7 @@ predep_record_source(const char *file) {
 			.iov_base = "\t",
 			.iov_len = 1,
 		}, {
-			.iov_base = digest_str,
+			.iov_base = checksum_str,
 			.iov_len = 2*20,
 		}, {
 			.iov_base = "\n",
@@ -128,112 +213,4 @@ predep_record_absent(const char *file) {
 	};
 
 	return fd_writev(3, iov, 4);
-}
-
-static
-int
-predep_hash_changed(const char *file, const char *digest_str) {
-	char digest[20];
-	file_hash_compute(file, digest);
-	for(int i = 0; i < 20; i++) {
-		if(digest_str[2*i+0] != hexdigit[(digest[i] & 0xf0) >> 4]) return 1;
-		if(digest_str[2*i+1] != hexdigit[(digest[i] & 0x0f) >> 0]) return 1;
-	}
-
-	return 0;
-}
-
-static
-int
-predep_created(const char *file) {
-	return path_exists(file);
-}
-
-static
-int
-predep_changed_source(const char *file, const char *digest_str) {
-	return !path_exists(file) || predep_hash_changed(file, digest_str);
-}
-
-static
-int
-openchecktargetclose(const char *target) {
-	stralloc sa = STRALLOC_ZERO;
-	predeps_sadbfile(&sa, target);
-	stralloc_0(&sa);
-	int changed = predeps_opencheckclose(sa.s);
-	stralloc_free(&sa);
-
-	return changed;
-}
-
-static
-int
-predep_changed_target(const char *file, const char *digest_str) {
-	return !path_exists(file) || predep_hash_changed(file, digest_str) || openchecktargetclose(file);
-}
-
-int
-predeps_changed(int db_fd) {
-	char buf[BUFFER_INSIZE];
-	buffer b = BUFFER_INIT(&buffer_read, db_fd, buf, BUFFER_INSIZE);
-
-	stralloc ln = STRALLOC_ZERO;
-	int changed = 0;
-	int r;
-	while(!changed && (r = skagetln(&b, &ln, '\n')) > 0) {
-		ln.s[ln.len-1] = '\0';
-		char *dep[3]; // FIXME
-		int i = 0;
-		dep[0] = ln.s;
-		i = str_chr(dep[0], '\t');
-		dep[0][i] = '\0';
-		i++;
-		dep[1] = &dep[0][i];
-		i = str_chr(&ln.s[i], '\t');
-		dep[1][i] = '\0';
-		i++;
-		dep[2] = &dep[1][i];
-		switch(ln.s[0]) {
-		case 't':
-			str_diff(dep[0], "target");
-			changed = predep_changed_target(dep[1], dep[2]);
-			break;
-		case 's':
-			str_diff(dep[0], "source");
-			changed = predep_changed_source(dep[1], dep[2]);
-			break;
-		case 'a':
-			str_diff(dep[0], "absent");
-			changed = predep_created(dep[1]);
-			break;
-		default:
-			break;
-		}
-		ln.len = 0;
-	}
-	stralloc_free(&ln);
-
-	if(r == -1) die("");
-
-	return changed;
-}
-
-int
-predeps_opencheckclose(const char *file) {
-	int fd = open_read(file);
-	if(fd == -1) {
-		return 1;
-	}
-	int changed = predeps_changed(fd);
-	fd_close(fd);
-
-	return changed;
-}
-
-int
-predeps_sadbfile(stralloc *sa, const char *target) {
-	stralloc_cats(sa, target);
-	stralloc_cats(sa, ".predeps");
-	return 0;
 }

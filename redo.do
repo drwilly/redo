@@ -6,6 +6,7 @@ OBJ=$(sed -e '/^$/d' <<-EOF
 	path.o
 	predeps.o
 	reporting.o
+	tmpfile.o
 	$2.o
 EOF
 )
