@@ -38,7 +38,7 @@ lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const 
 	static const char *const wildcards[] = { "_", "default", NULL };
 	for(int i = 0; wildcards[i]; i++) {
 		stralloc_copys(dofile, wildcards[i]);
-		stralloc_cats(dofile, &targetfile->s[str_chr(targetfile->s, '.')]);
+		stralloc_cats(dofile, targetfile->s + str_chr(targetfile->s, '.'));
 		stralloc_cats(dofile, ".do");
 		stralloc_0(dofile);
 
@@ -146,7 +146,7 @@ main(int argc, char *argv[]) {
 				static const char *dotslash = "./";
 				char dotslashdofile[str_len(dotslash) + str_len(dofile.s) + 1];
 				str_copy(dotslashdofile, dotslash);
-				str_copy(&dotslashdofile[str_len(dotslash)], dofile.s);
+				str_copy(dotslashdofile + str_len(dotslash), dofile.s);
 
 				execlp(dotslashdofile, dofile.s, targetfile.s, basename.s, "/dev/fd/1", (char *)NULL);
 				die_errno("execlp('%s', '%s', '%s', '%s', '%s', NULL) failed",

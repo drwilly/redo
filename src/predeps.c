@@ -12,32 +12,22 @@
 
 #include "predeps.h"
 
-static
-int
-sadbfile(stralloc *sa, const char *target) {
-	if(!stralloc_cats(sa, target)) return 0;
-	if(!stralloc_cats(sa, ".predeps")) return 0;
-	return 1;
-}
+static const char *dbfile_suffix = ".predeps";
 
 int
 predeps_existfor(const char *target) {
-	stralloc dbfile = STRALLOC_ZERO;
-	sadbfile(&dbfile, target);
-	stralloc_0(&dbfile);
-	int exists = path_exists(dbfile.s);
-	stralloc_free(&dbfile);
-	return exists;
+	char dbfile[str_len(target) + str_len(dbfile_suffix) + 1];
+	str_copy(dbfile, target);
+	str_copy(dbfile + str_len(target), dbfile_suffix);
+	return path_exists(dbfile);
 }
 
 int
 predeps_linkfor(const int fd, const char *target) {
-	stralloc dbfile = STRALLOC_ZERO;
-	sadbfile(&dbfile, target);
-	stralloc_0(&dbfile);
-	int rv = tmpfile_link(fd, dbfile.s);
-	stralloc_free(&dbfile);
-	return rv;
+	char dbfile[str_len(target) + str_len(dbfile_suffix) + 1];
+	str_copy(dbfile, target);
+	str_copy(dbfile + str_len(target), dbfile_suffix);
+	return tmpfile_link(fd, dbfile);
 }
 
 static
@@ -68,18 +58,16 @@ predeps_changed(int db_fd) {
 	int changed = 0;
 	int r;
 	while(!changed && (r = skagetln(&b, &ln, '\n')) > 0) {
-		ln.s[ln.len-1] = '\0';
 		char *dep[3]; // FIXME
-		int i = 0;
+		int i;
 		dep[0] = ln.s;
 		i = str_chr(dep[0], '\t');
 		dep[0][i] = '\0';
-		i++;
-		dep[1] = &dep[0][i];
-		i = str_chr(&ln.s[i], '\t');
+		dep[1] = dep[0] + i + 1;
+		i = str_chr(dep[1], '\t');
 		dep[1][i] = '\0';
-		i++;
-		dep[2] = &dep[1][i];
+		dep[2] = dep[1] + i + 1;
+		ln.s[ln.len-1] = '\0';
 		switch(ln.s[0]) {
 		case 't':
 			if(str_diff(dep[0], "target")) die("" /* TODO */);
@@ -87,7 +75,6 @@ predeps_changed(int db_fd) {
 			break;
 		case 's':
 			if(str_diff(dep[0], "source")) die("" /* TODO */);
-			str_diff(dep[0], "source");
 			changed = predep_changed_source(dep[1], dep[2]);
 			break;
 		case 'a':
@@ -121,13 +108,10 @@ predeps_opencheckclose(const char *file) {
 
 int
 predeps_changedfor(const char *target) {
-	stralloc sa = STRALLOC_ZERO;
-	sadbfile(&sa, target);
-	stralloc_0(&sa);
-	int changed = predeps_opencheckclose(sa.s);
-	stralloc_free(&sa);
-
-	return changed;
+	char dbfile[str_len(target) + str_len(dbfile_suffix) + 1];
+	str_copy(dbfile, target);
+	str_copy(dbfile + str_len(target), dbfile_suffix);
+	return predeps_opencheckclose(dbfile);
 }
 
 size_t
