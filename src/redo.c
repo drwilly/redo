@@ -112,8 +112,14 @@ main(int argc, char *argv[]) {
 
 	for(int i = 1; i < argc; i++) {
 		char *target = argv[i];
-		int out_fd = tmpfile_create();
-		int db_fd = tmpfile_create();
+		int out_fd;
+		int db_fd;
+		if((out_fd = tmpfile_create()) == -1) {
+			die_errno("tmpfile_create() failed");
+		}
+		if((db_fd = tmpfile_create()) == -1) {
+			die_errno("tmpfile_create() failed");
+		}
 
 		pid_t pid = fork();
 		if(pid == -1) {
@@ -162,12 +168,12 @@ main(int argc, char *argv[]) {
 
 			if(WEXITSTATUS(status) == 0) {
 				if(predeps_linkfor(db_fd, target) == -1) {
-					die_errno("predeps_storefor(%d, '%s'); failed", db_fd, target);
+					die_errno("predeps_linkfor(%d, '%s') failed", db_fd, target);
 				}
 				struct stat sb;
 				if(fstat(out_fd, &sb) == 0 && sb.st_size > 0) {
 					if(tmpfile_link(out_fd, target) == -1) {
-						die_errno("tmpfile_link(%d, '%s'); failed", out_fd, target);
+						die_errno("tmpfile_link(%d, '%s') failed", out_fd, target);
 					}
 				}
 			} else {

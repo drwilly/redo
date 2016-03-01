@@ -21,7 +21,7 @@ sha1_file(const char *file, char digest[20]) {
 #endif
 
 	SHA1Schedule ctx;
-	unsigned int messagelen;
+	size_t messagelen;
 	char message[count];
 
 	sha1_init(&ctx);
