@@ -26,6 +26,9 @@ tmpfile_link(const int fd, const char *target) {
 		if(!stralloc_0(&tmptarget)) goto err;
 		if(linkat(AT_FDCWD, file, AT_FDCWD, tmptarget.s, AT_SYMLINK_FOLLOW) == -1) goto err;
 		rv = rename(tmptarget.s, target);
+		if(rv == -1) {
+			unlink(tmptarget.s);
+		}
 err:
 		stralloc_free(&tmptarget);
 	}
