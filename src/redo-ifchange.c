@@ -48,6 +48,7 @@ main(int argc, char *argv[]) {
 		die_errno("fork() failed");
 	} else if(!pid) {
 		argv[0] = "redo";
+		argv[argc] = NULL;
 		execvp(argv[0], argv);
 		die_errno("exec('%s', ...) failed", argv[0]);
 	} else {
