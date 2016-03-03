@@ -9,6 +9,9 @@ static
 void
 sha1_file(const char *file, char digest[20]) {
 	int fd = open_read(file);
+	if(fd == -1) {
+		die_errno("open_read('%s') failed", file);
+	}
 	size_t count;
 #if 1
 	struct stat sb;
