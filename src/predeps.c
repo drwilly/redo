@@ -117,7 +117,7 @@ predeps_changedfor(const char *target) {
 size_t
 predep_record_target(const char *file) {
 	unsigned char checksum[20];
-	char checksum_str[2*20];
+	char checksum_str[20*2+1];
 	file_checksum_compute(file, checksum);
 	hexstring_from_checksum(checksum_str, checksum);
 
@@ -136,7 +136,7 @@ predep_record_target(const char *file) {
 			.iov_len = 1,
 		}, {
 			.iov_base = checksum_str,
-			.iov_len = 2*20,
+			.iov_len = 20*2,
 		}, {
 			.iov_base = "\n",
 			.iov_len = 1,
@@ -149,7 +149,7 @@ predep_record_target(const char *file) {
 size_t
 predep_record_source(const char *file) {
 	unsigned char checksum[20];
-	char checksum_str[2*20];
+	char checksum_str[20*2+1];
 	file_checksum_compute(file, checksum);
 	hexstring_from_checksum(checksum_str, checksum);
 
@@ -168,7 +168,7 @@ predep_record_source(const char *file) {
 			.iov_len = 1,
 		}, {
 			.iov_base = checksum_str,
-			.iov_len = 2*20,
+			.iov_len = 20*2,
 		}, {
 			.iov_base = "\n",
 			.iov_len = 1,

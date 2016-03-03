@@ -39,7 +39,7 @@ sha1_file(const char *file, char digest[20]) {
 void (*file_checksum_compute)(const char *file, char *checksum) = &sha1_file;
 
 int
-file_checksum_changed(const char *file, const char checksum_str[20*2]) {
+file_checksum_changed(const char *file, const char checksum_str[20*2+1]) {
 	char checksum[20];
 	file_checksum_compute(file, checksum);
 	for(int i = 0; i < 20; i++) {
