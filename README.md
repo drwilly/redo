@@ -28,3 +28,6 @@ https://github.com/apenwarr/redo
 
 ## Chris Forno's implemenation of redo in Haskell
 https://github.com/jekor/redo
+
+## Jonathan de Boyne Pollard's implementation of redo in C++
+http://homepage.ntlworld.com/jonathan.deboynepollard/Softwares/redo.html
