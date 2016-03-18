@@ -144,7 +144,7 @@ for target; do
 	else
 		# ------------- HUP INT QUIT TERM
 		trap "exit 1"   1   2   3    15
-		trap "rm -f -- $tmpfile" 0 # EXIT
+		trap "rm -f -- '$tmpfile'" 0 # EXIT
 	fi
 
 	if run_dofile "$dofile" "$targetfile" "$basename" "$tmpfile" >| "$tmpfile"; then
