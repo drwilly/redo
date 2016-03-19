@@ -20,7 +20,7 @@ credo uses both "default" and "\_" (preferring the latter), e.g. "\_.o.do"
 
 # credits
 ## djb
-for his original design notes
+for his original [design notes](https://cr.yp.to/redo.html)
 
 # similar work
 ## Avery Pennarun's implementation of redo in Python
