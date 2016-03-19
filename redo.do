@@ -4,7 +4,7 @@ OBJ=$(sed -e '/^$/d' <<-EOF
 	environment.o
 	options.o
 	path.o
-	predeps.o
+	prereqs.o
 	reporting.o
 	stralloc_string.o
 	$2.o

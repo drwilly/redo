@@ -2,7 +2,7 @@
 
 #include "reporting.h"
 #include "path.h"
-#include "predeps.h"
+#include "prereqs.h"
 
 #include "options.h"
 
@@ -11,20 +11,20 @@ int
 args_filter_unchanged(int argc, char *argv[]) {
 	int c = 1;
 	for(int i = 1; i < argc; i++) {
-		if(!predeps_existfor(argv[i])) {
+		if(!prereqs_existfor(argv[i])) {
 			if(path_exists(argv[i])) {
 				// not a build target
-				predep_record_source(argv[i]);
+				prereq_record_source(argv[i]);
 			} else {
 				// target (clean build)
 				argv[c++] = argv[i];
 			}
-		} else if(predeps_changedfor(argv[i])) {
+		} else if(prereqs_changedfor(argv[i])) {
 			// target (deps changed)
 			argv[c++] = argv[i];
 		} else {
 			// target (deps unchanged)
-			predep_record_target(argv[i]);
+			prereq_record_target(argv[i]);
 		}
 	}
 
@@ -56,7 +56,7 @@ main(int argc, char *argv[]) {
 		waitpid_nointr(pid, &status, 0);
 		if(WEXITSTATUS(status) == 0) {
 			for(int i = 1; i < argc; i++) {
-				predep_record_target(argv[i]);
+				prereq_record_target(argv[i]);
 			}
 		}
 		fd_close(3);

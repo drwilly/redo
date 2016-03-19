@@ -1,6 +1,6 @@
 # temporary files
 *.o
-*.predeps
+*.prereqs
 
 # utilities
 cc

@@ -2,14 +2,14 @@
 
 #include "reporting.h"
 #include "path.h"
-#include "predeps.h"
+#include "prereqs.h"
 
 #include "options.h"
 
 static
 int
 redo_ifcreate(const char *target) {
-	predep_record_absent(target);
+	prereq_record_absent(target);
 	return path_exists(target);
 }
 

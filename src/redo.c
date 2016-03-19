@@ -7,7 +7,7 @@
 #include "reporting.h"
 #include "environment.h"
 #include "path.h"
-#include "predeps.h"
+#include "prereqs.h"
 #include "stralloc_string.h"
 
 #include "options.h"
@@ -25,10 +25,10 @@ lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const 
 	stralloc_copy(basename, targetfile);
 
 	if(path_exists(dofile->s)) {
-		predep_record_source(dofile->s);
+		prereq_record_source(dofile->s);
 		return 1;
 	} else {
-		predep_record_absent(dofile->s);
+		prereq_record_absent(dofile->s);
 	}
 
 	static const char *const wildcards[] = { "_", "default", NULL };
@@ -39,10 +39,10 @@ lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const 
 		if(path_exists(dofile->s)) {
 			basename->len = (basename->len-1) - ((dofile->len-1) - str_len(wildcards[i]) - str_len(".do"));
 			basename->s[basename->len++] = '\0';
-			predep_record_source(dofile->s);
+			prereq_record_source(dofile->s);
 			return 1;
 		} else {
-			predep_record_absent(dofile->s);
+			prereq_record_absent(dofile->s);
 		}
 	}
 
@@ -170,8 +170,8 @@ main(int argc, char *argv[]) {
 			waitpid_nointr(pid, &status, 0);
 
 			if(WEXITSTATUS(status) == 0) {
-				if(predeps_renamefor(target, dbfile.s) == -1) {
-					error("predeps_renamefor('%s', '%s') failed", target, dbfile.s);
+				if(prereqs_renamefor(target, dbfile.s) == -1) {
+					error("prereqs_renamefor('%s', '%s') failed", target, dbfile.s);
 					rv = 1;
 				}
 				struct stat sb;

@@ -9,12 +9,12 @@
 
 #include "checksum.h"
 
-#include "predeps.h"
+#include "prereqs.h"
 
-static const char *dbfile_suffix = ".predeps";
+static const char *dbfile_suffix = ".prereqs";
 
 int
-predeps_existfor(const char *target) {
+prereqs_existfor(const char *target) {
 	char dbfile[str_len(target) + str_len(dbfile_suffix) + 1];
 	str_copy(dbfile, target);
 	str_copy(dbfile + str_len(target), dbfile_suffix);
@@ -22,7 +22,7 @@ predeps_existfor(const char *target) {
 }
 
 int
-predeps_renamefor(const char *target, const char *tmpfile) {
+prereqs_renamefor(const char *target, const char *tmpfile) {
 	char dbfile[str_len(target) + str_len(dbfile_suffix) + 1];
 	str_copy(dbfile, target);
 	str_copy(dbfile + str_len(target), dbfile_suffix);
@@ -31,25 +31,25 @@ predeps_renamefor(const char *target, const char *tmpfile) {
 
 static
 int
-predep_created(const char *file) {
+prereq_created(const char *file) {
 	return path_exists(file);
 }
 
 static
 int
-predep_changed_source(const char *file, const char *checksum_str) {
+prereq_changed_source(const char *file, const char *checksum_str) {
 	return !path_exists(file) || file_checksum_changed(file, checksum_str);
 }
 
 static
 int
-predep_changed_target(const char *file, const char *checksum_str) {
-	return !path_exists(file) || file_checksum_changed(file, checksum_str) || predeps_changedfor(file);
+prereq_changed_target(const char *file, const char *checksum_str) {
+	return !path_exists(file) || file_checksum_changed(file, checksum_str) || prereqs_changedfor(file);
 }
 
 static
 int
-predeps_changed(int db_fd) {
+prereqs_changed(int db_fd) {
 	char buf[BUFFER_INSIZE];
 	buffer b = BUFFER_INIT(&buffer_read, db_fd, buf, BUFFER_INSIZE);
 
@@ -70,15 +70,15 @@ predeps_changed(int db_fd) {
 		switch(ln.s[0]) {
 		case 't':
 			if(str_diff(dep[0], "target")) die("" /* TODO */);
-			changed = predep_changed_target(dep[1], dep[2]);
+			changed = prereq_changed_target(dep[1], dep[2]);
 			break;
 		case 's':
 			if(str_diff(dep[0], "source")) die("" /* TODO */);
-			changed = predep_changed_source(dep[1], dep[2]);
+			changed = prereq_changed_source(dep[1], dep[2]);
 			break;
 		case 'a':
 			if(str_diff(dep[0], "absent")) die("" /* TODO */);
-			changed = predep_created(dep[1]);
+			changed = prereq_created(dep[1]);
 			break;
 		default:
 			die("" /* TODO */);
@@ -94,27 +94,27 @@ predeps_changed(int db_fd) {
 
 static
 int
-predeps_opencheckclose(const char *file) {
+prereqs_opencheckclose(const char *file) {
 	int fd = open_read(file);
 	if(fd == -1) {
 		die_errno("open_read('%s') failed", file);
 	}
-	int changed = predeps_changed(fd);
+	int changed = prereqs_changed(fd);
 	fd_close(fd);
 
 	return changed;
 }
 
 int
-predeps_changedfor(const char *target) {
+prereqs_changedfor(const char *target) {
 	char dbfile[str_len(target) + str_len(dbfile_suffix) + 1];
 	str_copy(dbfile, target);
 	str_copy(dbfile + str_len(target), dbfile_suffix);
-	return predeps_opencheckclose(dbfile);
+	return prereqs_opencheckclose(dbfile);
 }
 
 size_t
-predep_record_target(const char *file) {
+prereq_record_target(const char *file) {
 	char checksum_str[20*2+1];
 	if(path_exists(file)) {
 		unsigned char checksum[20];
@@ -147,11 +147,16 @@ predep_record_target(const char *file) {
 		}
 	};
 
-	return fd_writev(3, iov, 6);
+	size_t total = 0;
+	for(int i = 0; i < 6; i++) {
+		total += iov[i].iov_len;
+	}
+	size_t w = fd_writev(3, iov, 6);
+	return (w == -1) ? w : total - w;
 }
 
 size_t
-predep_record_source(const char *file) {
+prereq_record_source(const char *file) {
 	unsigned char checksum[20];
 	char checksum_str[20*2+1];
 	file_checksum_compute(file, checksum);
@@ -179,11 +184,16 @@ predep_record_source(const char *file) {
 		}
 	};
 
-	return fd_writev(3, iov, 6);
+	size_t total = 0;
+	for(int i = 0; i < 6; i++) {
+		total += iov[i].iov_len;
+	}
+	size_t w = fd_writev(3, iov, 6);
+	return (w == -1) ? w : total - w;
 }
 
 size_t
-predep_record_absent(const char *file) {
+prereq_record_absent(const char *file) {
 	struct iovec iov[] = {
 		{
 			.iov_base = "absent",
@@ -200,5 +210,10 @@ predep_record_absent(const char *file) {
 		}
 	};
 
-	return fd_writev(3, iov, 4);
+	size_t total = 0;
+	for(int i = 0; i < 4; i++) {
+		total += iov[i].iov_len;
+	}
+	size_t w = fd_writev(3, iov, 4);
+	return (w == -1) ? w : total - w;
 }
