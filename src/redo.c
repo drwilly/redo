@@ -3,12 +3,12 @@
 #include <errno.h>
 
 #include <skalibs/djbunix.h>
-#include <skalibs/stralloc.h>
 
 #include "reporting.h"
 #include "environment.h"
 #include "path.h"
 #include "predeps.h"
+#include "stralloc_string.h"
 
 #include "options.h"
 
@@ -17,16 +17,12 @@
 static
 int
 lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const char *target) {
-	sabasename(targetfile, target, str_len(target));
+	stralloc_string_basename(targetfile, target, str_len(target));
 
 	stralloc_copy(dofile, targetfile);
-	stralloc_cats(dofile, ".do");
-	stralloc_0(dofile);
+	stralloc_string_cats1(dofile, ".do");
 
 	stralloc_copy(basename, targetfile);
-	stralloc_0(basename);
-
-	stralloc_0(targetfile);
 
 	if(path_exists(dofile->s)) {
 		predep_record_source(dofile->s);
@@ -37,14 +33,12 @@ lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const 
 
 	static const char *const wildcards[] = { "_", "default", NULL };
 	for(int i = 0; wildcards[i]; i++) {
-		stralloc_copys(dofile, wildcards[i]);
-		stralloc_cats(dofile, targetfile->s + str_chr(targetfile->s, '.'));
-		stralloc_cats(dofile, ".do");
-		stralloc_0(dofile);
+		dofile->len = 0;
+		stralloc_string_cats3(dofile, wildcards[i], targetfile->s + str_chr(targetfile->s, '.'), ".do");
 
 		if(path_exists(dofile->s)) {
 			basename->len = (basename->len-1) - ((dofile->len-1) - str_len(wildcards[i]) - str_len(".do"));
-			stralloc_0(basename);
+			basename->s[basename->len++] = '\0';
 			predep_record_source(dofile->s);
 			return 1;
 		} else {
@@ -113,9 +107,7 @@ main(int argc, char *argv[]) {
 		char *target = argv[i];
 
 		stralloc dbfile = STRALLOC_ZERO;
-		stralloc_cats(&dbfile, target);
-		stralloc_cats(&dbfile, ":redo.db");
-		stralloc_0(&dbfile);
+		stralloc_string_cats2(&dbfile, target, ":redo.db");
 
 		int dbfd = open_excl(dbfile.s);
 		if(dbfd == -1) {
@@ -126,9 +118,7 @@ main(int argc, char *argv[]) {
 		}
 
 		stralloc outfile = STRALLOC_ZERO;
-		stralloc_cats(&outfile, target);
-		stralloc_cats(&outfile, ":redo.out");
-		stralloc_0(&outfile);
+		stralloc_string_cats2(&outfile, target, ":redo.out");
 
 		int outfd = open_excl(outfile.s);
 		if(outfd == -1) {
@@ -150,8 +140,7 @@ main(int argc, char *argv[]) {
 			}
 
 			stralloc workdir = STRALLOC_ZERO;
-			sadirname(&workdir, target, str_len(target));
-			stralloc_0(&workdir);
+			stralloc_string_dirname(&workdir, target, str_len(target));
 			if(chdir(workdir.s) == -1) {
 				die_errno("chdir('%s') failed", workdir.s);
 			}
@@ -169,14 +158,12 @@ main(int argc, char *argv[]) {
 
 			redo_setenv_int(REDO_ENV_DEPTH, redo_getenv_int(REDO_ENV_DEPTH, 0) + 1);
 
-			static const char *dotslash = "./";
-			char dotslashdofile[str_len(dotslash) + str_len(dofile.s) + 1];
-			str_copy(dotslashdofile, dotslash);
-			str_copy(dotslashdofile + str_len(dotslash), dofile.s);
+			stralloc dotslashdofile = STRALLOC_ZERO;
+			stralloc_string_cats2(&dotslashdofile, "./", dofile.s);
 
-			execlp(dotslashdofile, dofile.s, targetfile.s, basename.s, "/dev/fd/1", (char *)NULL);
+			execlp(dotslashdofile.s, dofile.s, targetfile.s, basename.s, "/dev/fd/1", (char *)NULL);
 			die_errno("execlp('%s', '%s', '%s', '%s', '%s', NULL) failed",
-				dotslashdofile, dofile.s, targetfile.s, basename.s, "/dev/fd/1"
+				dotslashdofile.s, dofile.s, targetfile.s, basename.s, "/dev/fd/1"
 			);
 		} else {
 			int status;
