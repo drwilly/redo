@@ -18,11 +18,8 @@ main(int argc, char *argv[]) {
 	argc = args_filter_options(argc, argv);
 
 	int rv = 0;
-	for(int i = 1; i < argc; i++) {
+	for(int i = 1; !rv && i < argc; i++) {
 		rv = redo_ifcreate(argv[i]);
-		if(rv != 0) {
-			break;
-		}
 	}
 
 	return rv;

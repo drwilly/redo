@@ -1,4 +1,5 @@
-rm -f -- *.part
+#rm -f -- *:redo.out
+#rm -f -- *:redo.db
 rm -f -- *.predeps
 rm -f -- *.d
 rm -f -- *.o

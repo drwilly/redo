@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include <skalibs/djbunix.h>
 #include <skalibs/stralloc.h>
@@ -8,7 +9,6 @@
 #include "environment.h"
 #include "path.h"
 #include "predeps.h"
-#include "tmpfile.h"
 
 #include "options.h"
 
@@ -95,9 +95,7 @@ main(int argc, char *argv[]) {
 	if(seed) {
 		srand(seed);
 		for(int i = argc - 1; i >= 1; i--) {
-			int j = rand() % (i + 1);
-			if(i == j)
-				continue;
+			int j = rand() % i;
 			char *tmp = argv[i];
 			argv[i] = argv[j];
 			argv[j] = tmp;
@@ -110,26 +108,45 @@ main(int argc, char *argv[]) {
 		argv = newargv;
 	}
 
-	for(int i = 1; i < argc; i++) {
+	int rv = 0;
+	for(int i = 1; !rv && i < argc; i++) {
 		char *target = argv[i];
-		int out_fd;
-		int db_fd;
-		if((out_fd = tmpfile_create()) == -1) {
-			die_errno("tmpfile_create() failed");
+
+		stralloc dbfile = STRALLOC_ZERO;
+		stralloc_cats(&dbfile, target);
+		stralloc_cats(&dbfile, ":redo.db");
+		stralloc_0(&dbfile);
+
+		int dbfd = open_excl(dbfile.s);
+		if(dbfd == -1) {
+//			die_errno("dbfile '%s'", dbfile.s);
+			error("open_excl('%s') failed", dbfile.s);
+			rv = 1;
+			goto cleanup_dbfile;
 		}
-		if((db_fd = tmpfile_create()) == -1) {
-			die_errno("tmpfile_create() failed");
+
+		stralloc outfile = STRALLOC_ZERO;
+		stralloc_cats(&outfile, target);
+		stralloc_cats(&outfile, ":redo.out");
+		stralloc_0(&outfile);
+
+		int outfd = open_excl(outfile.s);
+		if(outfd == -1) {
+//			die_errno("outfile '%s'", outfile.s);
+			error("open_excl('%s') failed", outfile.s);
+			rv = 1;
+			goto cleanup_outfile;
 		}
 
 		pid_t pid = fork();
 		if(pid == -1) {
 			die_errno("fork() failed");
 		} else if(!pid) {
-			if(fd_move(1, out_fd) == -1) {
-				die_errno("fd_move(%d, %d) failed", 1, out_fd);
+			if(fd_move(3, dbfd) == -1) {
+				die_errno("fd_move(%d, %d) failed", 3, dbfd);
 			}
-			if(fd_move(3, db_fd) == -1) {
-				die_errno("fd_move(%d, %d) failed", 3, db_fd);
+			if(fd_move(1, outfd) == -1) {
+				die_errno("fd_move(%d, %d) failed", 1, outfd);
 			}
 
 			stralloc workdir = STRALLOC_ZERO;
@@ -144,46 +161,53 @@ main(int argc, char *argv[]) {
 			stralloc dofile = STRALLOC_ZERO;
 			stralloc basename = STRALLOC_ZERO;
 
-			if(lookup_params(&dofile, &targetfile, &basename, target)) {
-				info("%s:%s", dofile.s, target);
-
-				redo_setenv_int(REDO_ENV_DEPTH, redo_getenv_int(REDO_ENV_DEPTH, 0) + 1);
-
-				static const char *dotslash = "./";
-				char dotslashdofile[str_len(dotslash) + str_len(dofile.s) + 1];
-				str_copy(dotslashdofile, dotslash);
-				str_copy(dotslashdofile + str_len(dotslash), dofile.s);
-
-				execlp(dotslashdofile, dofile.s, targetfile.s, basename.s, "/dev/fd/1", (char *)NULL);
-				die_errno("execlp('%s', '%s', '%s', '%s', '%s', NULL) failed",
-					dotslashdofile, dofile.s, targetfile.s, basename.s, "/dev/fd/1"
-				);
-			} else {
+			if(!lookup_params(&dofile, &targetfile, &basename, target)) {
 				die("No dofile for target '%s'. Stop.", target);
 			}
-			// unreached
+
+			info("%s:%s", dofile.s, target);
+
+			redo_setenv_int(REDO_ENV_DEPTH, redo_getenv_int(REDO_ENV_DEPTH, 0) + 1);
+
+			static const char *dotslash = "./";
+			char dotslashdofile[str_len(dotslash) + str_len(dofile.s) + 1];
+			str_copy(dotslashdofile, dotslash);
+			str_copy(dotslashdofile + str_len(dotslash), dofile.s);
+
+			execlp(dotslashdofile, dofile.s, targetfile.s, basename.s, "/dev/fd/1", (char *)NULL);
+			die_errno("execlp('%s', '%s', '%s', '%s', '%s', NULL) failed",
+				dotslashdofile, dofile.s, targetfile.s, basename.s, "/dev/fd/1"
+			);
 		} else {
 			int status;
 			waitpid_nointr(pid, &status, 0);
 
 			if(WEXITSTATUS(status) == 0) {
-				if(predeps_linkfor(db_fd, target) == -1) {
-					die_errno("predeps_linkfor(%d, '%s') failed", db_fd, target);
+				if(predeps_renamefor(target, dbfile.s) == -1) {
+					error("predeps_renamefor('%s', '%s') failed", target, dbfile.s);
+					rv = 1;
 				}
 				struct stat sb;
-				if(fstat(out_fd, &sb) == 0 && sb.st_size > 0) {
-					if(tmpfile_link(out_fd, target) == -1) {
-						die_errno("tmpfile_link(%d, '%s') failed", out_fd, target);
+				if(stat(outfile.s, &sb) == 0 && sb.st_size > 0) {
+					if(rename(outfile.s, target) == -1) {
+						error("rename(%d, '%s') failed", outfile, target);
+						rv = 1;
 					}
 				}
 			} else {
 				error("%s:%s returned %d", "TODO", target, WEXITSTATUS(status));
-				return 1;
+				rv = 1;
 			}
-			fd_close(out_fd);
-			fd_close(db_fd);
 		}
+		unlink(outfile.s);
+		fd_close(outfd);
+cleanup_outfile:
+		stralloc_free(&outfile);
+		unlink(dbfile.s);
+		fd_close(dbfd);
+cleanup_dbfile:
+		stralloc_free(&dbfile);
 	}
 
-	return 0;
+	return rv;
 }

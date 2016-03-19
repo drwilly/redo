@@ -123,7 +123,7 @@ for target; do
 		basename="${basename%.$ext}"
 		unset ext
 	fi
-	tmpfile="${targetfile}.part"
+	tmpfile="${targetfile}:redo.out"
 
 	(
 	export REDO_DEPTH=$((REDO_DEPTH + 1))

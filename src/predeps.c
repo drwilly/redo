@@ -6,7 +6,6 @@
 
 #include "reporting.h"
 #include "path.h"
-#include "tmpfile.h"
 
 #include "checksum.h"
 
@@ -23,11 +22,11 @@ predeps_existfor(const char *target) {
 }
 
 int
-predeps_linkfor(const int fd, const char *target) {
+predeps_renamefor(const char *target, const char *tmpfile) {
 	char dbfile[str_len(target) + str_len(dbfile_suffix) + 1];
 	str_copy(dbfile, target);
 	str_copy(dbfile + str_len(target), dbfile_suffix);
-	return tmpfile_link(fd, dbfile);
+	return rename(tmpfile, dbfile);
 }
 
 static
