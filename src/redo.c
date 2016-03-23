@@ -101,21 +101,49 @@ redo(const char *target) {
 	stralloc dbfile = STRALLOC_ZERO;
 	stralloc_string_cats2(&dbfile, target, ":redo.db");
 
+	// TODO don't discard errno info
 	int dbfd = open_excl(dbfile.s);
 	if(dbfd == -1) {
-//		die_errno("dbfile '%s'", dbfile.s);
-		error("open_excl('%s') failed", dbfile.s);
+		if(errno != EEXIST) {
+			error("open_excl('%s') failed", dbfile.s);
+			rv = 1;
+			goto cleanup_dbfile;
+		}
+		dbfd = open_write(dbfile.s);
+		if(dbfd == -1) {
+			error("open_write('%s') failed", dbfile.s);
+			rv = 1;
+			goto cleanup_dbfile;
+		}
+	}
+	if(lock_exnb(dbfd) == -1) {
+		if(errno != EWOULDBLOCK) {
+			error("lock_exnb(%d) failed", dbfd);
+			rv = 1;
+			goto cleanup_dbfd;
+		}
+		if(lock_ex(dbfd) == -1) {
+			error("lock_ex(%d) failed", dbfd);
+			rv = 1;
+			goto cleanup_dbfd;
+		}
+		rv = 0;
+		goto cleanup_dbfd;
+	}
+
+	// TODO truncate only needed when open_excl failed (but must be after lock)
+	if(ftruncate(dbfd, 0) == -1) {
+		error("ftruncate('%d, %d') failed", dbfd, 0);
 		rv = 1;
-		goto cleanup_dbfile;
+		goto cleanup_dbfd;
 	}
 
 	stralloc outfile = STRALLOC_ZERO;
 	stralloc_string_cats2(&outfile, target, ":redo.out");
 
-	int outfd = open_excl(outfile.s);
+	int outfd = open_trunc(outfile.s);
 	if(outfd == -1) {
-//		die_errno("outfile '%s'", outfile.s);
-		error("open_excl('%s') failed", outfile.s);
+		error("open_trunc('%s') failed", outfile.s);
 		rv = 1;
 		goto cleanup_outfile;
 	}
@@ -124,27 +152,37 @@ redo(const char *target) {
 		if(prereqs_renamefor(target, dbfile.s) == -1) {
 			error("prereqs_renamefor('%s', '%s') failed", target, dbfile.s);
 			rv = 1;
-			goto cleanup_all;
+			goto cleanup_outfd;
 		}
 		struct stat sb;
 		if(stat(outfile.s, &sb) == 0 && sb.st_size > 0) {
 			if(rename(outfile.s, target) == -1) {
 				error("rename('%s', '%s') failed", outfile.s, target);
 				rv = 1;
-				goto cleanup_all;
+				goto cleanup_outfd;
 			}
 		}
 	} else {
 		error("build '%s' returned %d", target, rv);
 	}
 
-cleanup_all:
-	unlink(outfile.s);
-	fd_close(outfd);
+cleanup_outfd:
+	if(unlink(outfile.s) == -1 && errno != ENOENT) {
+		error("unlink('%s') failed", outfile.s);
+	}
+	if(fd_close(outfd) == -1) {
+		error("fd_close(%d) failed", outfd);
+	}
 cleanup_outfile:
 	stralloc_free(&outfile);
-	unlink(dbfile.s);
-	fd_close(dbfd);
+	// lock on dbfd is released when fd is closed
+cleanup_dbfd:
+	if(unlink(dbfile.s) == -1 && errno != ENOENT) {
+		error("unlink('%s') failed", dbfile.s);
+	}
+	if(fd_close(dbfd) == -1) {
+		error("fd_close(%d) failed", dbfd);
+	}
 cleanup_dbfile:
 	stralloc_free(&dbfile);
 
