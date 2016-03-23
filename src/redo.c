@@ -56,11 +56,8 @@ build(const char *target, int dbfd, int outfd) {
 	if(pid == -1) {
 		die_errno("fork() failed");
 	} else if(!pid) {
-		if(fd_move(3, dbfd) == -1) {
-			die_errno("fd_move(%d, %d) failed", 3, dbfd);
-		}
-		if(fd_move(1, outfd) == -1) {
-			die_errno("fd_move(%d, %d) failed", 1, outfd);
+		if(fd_move2(3, dbfd, 1, outfd) == -1) {
+			die_errno("fd_move2(%d, %d, %d, %d) failed", 3, dbfd, 1, outfd);
 		}
 
 		stralloc workdir = STRALLOC_ZERO;
@@ -193,8 +190,8 @@ main(int argc, char *argv[]) {
 	unsigned int seed = redo_getenv_int(REDO_ENV_SHUFFLE, 0);
 	if(seed) {
 		srand(seed);
-		for(int i = argc - 1; i >= 1; i--) {
-			int j = rand() % i;
+		for(int i = argc - 1; i >= 2; i--) {
+			int j = (rand() % i) + 1;
 			char *tmp = argv[i];
 			argv[i] = argv[j];
 			argv[j] = tmp;
