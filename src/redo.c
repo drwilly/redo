@@ -49,6 +49,111 @@ lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const 
 	return 0;
 }
 
+static
+int
+build(const char *target, int dbfd, int outfd) {
+	pid_t pid = fork();
+	if(pid == -1) {
+		die_errno("fork() failed");
+	} else if(!pid) {
+		if(fd_move(3, dbfd) == -1) {
+			die_errno("fd_move(%d, %d) failed", 3, dbfd);
+		}
+		if(fd_move(1, outfd) == -1) {
+			die_errno("fd_move(%d, %d) failed", 1, outfd);
+		}
+
+		stralloc workdir = STRALLOC_ZERO;
+		stralloc_string_dirname(&workdir, target, str_len(target));
+		if(chdir(workdir.s) == -1) {
+			die_errno("chdir('%s') failed", workdir.s);
+		}
+		stralloc_free(&workdir);
+
+		stralloc targetfile = STRALLOC_ZERO;
+		stralloc dofile = STRALLOC_ZERO;
+		stralloc basename = STRALLOC_ZERO;
+
+		if(!lookup_params(&dofile, &targetfile, &basename, target)) {
+			die("No dofile for target '%s'. Stop.", target);
+		}
+
+		info("%s:%s", dofile.s, target);
+
+		redo_setenv_int(REDO_ENV_DEPTH, redo_getenv_int(REDO_ENV_DEPTH, 0) + 1);
+
+		stralloc dotslashdofile = STRALLOC_ZERO;
+		stralloc_string_cats2(&dotslashdofile, "./", dofile.s);
+
+		execlp(dotslashdofile.s, dofile.s, targetfile.s, basename.s, "/dev/fd/1", (char *)NULL);
+		die_errno("execlp('%s', '%s', '%s', '%s', '%s', NULL) failed",
+			dotslashdofile.s, dofile.s, targetfile.s, basename.s, "/dev/fd/1"
+		);
+	} else {
+		int status;
+		waitpid_nointr(pid, &status, 0);
+
+		return WEXITSTATUS(status);
+	}
+}
+
+static
+int
+redo(const char *target) {
+	int rv;
+	stralloc dbfile = STRALLOC_ZERO;
+	stralloc_string_cats2(&dbfile, target, ":redo.db");
+
+	int dbfd = open_excl(dbfile.s);
+	if(dbfd == -1) {
+//		die_errno("dbfile '%s'", dbfile.s);
+		error("open_excl('%s') failed", dbfile.s);
+		rv = 1;
+		goto cleanup_dbfile;
+	}
+
+	stralloc outfile = STRALLOC_ZERO;
+	stralloc_string_cats2(&outfile, target, ":redo.out");
+
+	int outfd = open_excl(outfile.s);
+	if(outfd == -1) {
+//		die_errno("outfile '%s'", outfile.s);
+		error("open_excl('%s') failed", outfile.s);
+		rv = 1;
+		goto cleanup_outfile;
+	}
+	rv = build(target, dbfd, outfd);
+	if(rv == 0) {
+		if(prereqs_renamefor(target, dbfile.s) == -1) {
+			error("prereqs_renamefor('%s', '%s') failed", target, dbfile.s);
+			rv = 1;
+			goto cleanup_all;
+		}
+		struct stat sb;
+		if(stat(outfile.s, &sb) == 0 && sb.st_size > 0) {
+			if(rename(outfile.s, target) == -1) {
+				error("rename('%s', '%s') failed", outfile.s, target);
+				rv = 1;
+				goto cleanup_all;
+			}
+		}
+	} else {
+		error("build '%s' returned %d", target, rv);
+	}
+
+cleanup_all:
+	unlink(outfile.s);
+	fd_close(outfd);
+cleanup_outfile:
+	stralloc_free(&outfile);
+	unlink(dbfile.s);
+	fd_close(dbfd);
+cleanup_dbfile:
+	stralloc_free(&dbfile);
+
+	return rv;
+}
+
 // TODO remove
 #define len(x) (sizeof(x) / sizeof(*x))
 
@@ -104,100 +209,7 @@ main(int argc, char *argv[]) {
 
 	int rv = 0;
 	for(int i = 1; !rv && i < argc; i++) {
-		char *target = argv[i];
-
-		stralloc dbfile = STRALLOC_ZERO;
-		stralloc_string_cats2(&dbfile, target, ":redo.db");
-
-		int dbfd = open_excl(dbfile.s);
-		if(dbfd == -1) {
-//			die_errno("dbfile '%s'", dbfile.s);
-			error("open_excl('%s') failed", dbfile.s);
-			rv = 1;
-			goto cleanup_dbfile;
-		}
-
-		stralloc outfile = STRALLOC_ZERO;
-		stralloc_string_cats2(&outfile, target, ":redo.out");
-
-		int outfd = open_excl(outfile.s);
-		if(outfd == -1) {
-//			die_errno("outfile '%s'", outfile.s);
-			error("open_excl('%s') failed", outfile.s);
-			rv = 1;
-			goto cleanup_outfile;
-		}
-
-		pid_t pid = fork();
-		if(pid == -1) {
-			die_errno("fork() failed");
-		} else if(!pid) {
-			if(fd_move(3, dbfd) == -1) {
-				die_errno("fd_move(%d, %d) failed", 3, dbfd);
-			}
-			if(fd_move(1, outfd) == -1) {
-				die_errno("fd_move(%d, %d) failed", 1, outfd);
-			}
-
-			stralloc workdir = STRALLOC_ZERO;
-			stralloc_string_dirname(&workdir, target, str_len(target));
-			if(chdir(workdir.s) == -1) {
-				die_errno("chdir('%s') failed", workdir.s);
-			}
-			stralloc_free(&workdir);
-
-			stralloc targetfile = STRALLOC_ZERO;
-			stralloc dofile = STRALLOC_ZERO;
-			stralloc basename = STRALLOC_ZERO;
-
-			if(!lookup_params(&dofile, &targetfile, &basename, target)) {
-				die("No dofile for target '%s'. Stop.", target);
-			}
-
-			info("%s:%s", dofile.s, target);
-
-			redo_setenv_int(REDO_ENV_DEPTH, redo_getenv_int(REDO_ENV_DEPTH, 0) + 1);
-
-			stralloc dotslashdofile = STRALLOC_ZERO;
-			stralloc_string_cats2(&dotslashdofile, "./", dofile.s);
-
-			execlp(dotslashdofile.s, dofile.s, targetfile.s, basename.s, "/dev/fd/1", (char *)NULL);
-			die_errno("execlp('%s', '%s', '%s', '%s', '%s', NULL) failed",
-				dotslashdofile.s, dofile.s, targetfile.s, basename.s, "/dev/fd/1"
-			);
-		} else {
-			int status;
-			waitpid_nointr(pid, &status, 0);
-
-			if(WEXITSTATUS(status) == 0) {
-				if(prereqs_renamefor(target, dbfile.s) == -1) {
-					error("prereqs_renamefor('%s', '%s') failed", target, dbfile.s);
-					rv = 1;
-					goto cleanup_all;
-				}
-				struct stat sb;
-				if(stat(outfile.s, &sb) == 0 && sb.st_size > 0) {
-					if(rename(outfile.s, target) == -1) {
-						error("rename('%s', '%s') failed", outfile.s, target);
-						rv = 1;
-						goto cleanup_all;
-					}
-				}
-			} else {
-				error("%s:%s returned %d", "TODO", target, WEXITSTATUS(status));
-				rv = 1;
-			}
-		}
-
-cleanup_all:
-		unlink(outfile.s);
-		fd_close(outfd);
-cleanup_outfile:
-		stralloc_free(&outfile);
-		unlink(dbfile.s);
-		fd_close(dbfd);
-cleanup_dbfile:
-		stralloc_free(&dbfile);
+		rv = redo(argv[i]);
 	}
 
 	return rv;
