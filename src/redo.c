@@ -173,12 +173,14 @@ main(int argc, char *argv[]) {
 				if(prereqs_renamefor(target, dbfile.s) == -1) {
 					error("prereqs_renamefor('%s', '%s') failed", target, dbfile.s);
 					rv = 1;
+					goto cleanup_all;
 				}
 				struct stat sb;
 				if(stat(outfile.s, &sb) == 0 && sb.st_size > 0) {
 					if(rename(outfile.s, target) == -1) {
-						error("rename(%d, '%s') failed", outfile, target);
+						error("rename('%s', '%s') failed", outfile.s, target);
 						rv = 1;
+						goto cleanup_all;
 					}
 				}
 			} else {
@@ -186,6 +188,8 @@ main(int argc, char *argv[]) {
 				rv = 1;
 			}
 		}
+
+cleanup_all:
 		unlink(outfile.s);
 		fd_close(outfd);
 cleanup_outfile:
