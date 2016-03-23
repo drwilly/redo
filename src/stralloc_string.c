@@ -5,12 +5,11 @@
 static
 int
 stralloc_string_catv_internal(stralloc *sa, siovec_t const *v, size_t n) {
-	const int oldlen = sa->len;
 	if(sa->s && sa->len > 0) sa->len--;
 	if(!stralloc_catv(sa, v, n)) goto err;
 	return 1;
 err:
-	sa->len = oldlen;
+	sa->len++;
 	return 0;
 }
 

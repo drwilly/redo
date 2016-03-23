@@ -113,6 +113,17 @@ prereqs_changedfor(const char *target) {
 	return prereqs_opencheckclose(dbfile);
 }
 
+static
+size_t
+predep_record_writev(struct iovec *iov, size_t n) {
+	size_t total = 0;
+	for(int i = 0; i < n; i++) {
+		total += iov[i].iov_len;
+	}
+	size_t w = fd_writev(3, iov, n);
+	return (w == -1) ? w : total - w;
+}
+
 size_t
 prereq_record_target(const char *file) {
 	char checksum_str[20*2+1];
@@ -147,12 +158,7 @@ prereq_record_target(const char *file) {
 		}
 	};
 
-	size_t total = 0;
-	for(int i = 0; i < 6; i++) {
-		total += iov[i].iov_len;
-	}
-	size_t w = fd_writev(3, iov, 6);
-	return (w == -1) ? w : total - w;
+	return predep_record_writev(iov, 6);
 }
 
 size_t
@@ -184,12 +190,7 @@ prereq_record_source(const char *file) {
 		}
 	};
 
-	size_t total = 0;
-	for(int i = 0; i < 6; i++) {
-		total += iov[i].iov_len;
-	}
-	size_t w = fd_writev(3, iov, 6);
-	return (w == -1) ? w : total - w;
+	return predep_record_writev(iov, 6);
 }
 
 size_t
@@ -210,10 +211,5 @@ prereq_record_absent(const char *file) {
 		}
 	};
 
-	size_t total = 0;
-	for(int i = 0; i < 4; i++) {
-		total += iov[i].iov_len;
-	}
-	size_t w = fd_writev(3, iov, 4);
-	return (w == -1) ? w : total - w;
+	return predep_record_writev(iov, 4);
 }
