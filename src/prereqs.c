@@ -49,6 +49,12 @@ prereq_changed_target(const char *file, const char *checksum_str) {
 
 static
 int
+prereq_changed_virtual(const char *file) {
+	return prereqs_changedfor(file);
+}
+
+static
+int
 prereqs_changed(int db_fd) {
 	char buf[BUFFER_INSIZE];
 	buffer b = BUFFER_INIT(&buffer_read, db_fd, buf, BUFFER_INSIZE);
@@ -68,6 +74,10 @@ prereqs_changed(int db_fd) {
 		dep[2] = dep[1] + i + 1;
 		ln.s[ln.len-1] = '\0';
 		switch(ln.s[0]) {
+		case 'v':
+			if(str_diff(dep[0], "virtual")) die("" /* TODO */);
+			changed = prereq_changed_virtual(dep[1]);
+			break;
 		case 't':
 			if(str_diff(dep[0], "target")) die("" /* TODO */);
 			changed = prereq_changed_target(dep[1], dep[2]);
@@ -124,17 +134,37 @@ predep_record_writev(struct iovec *iov, size_t n) {
 	return (w == -1) ? w : total - w;
 }
 
+static
+size_t
+prereq_record_virtual(const char *file) {
+	struct iovec iov[] = {
+		{
+			.iov_base = "virtual",
+			.iov_len = 7,
+		}, {
+			.iov_base = "\t",
+			.iov_len = 1,
+		}, {
+			.iov_base = file,
+			.iov_len = str_len(file),
+		}, {
+			.iov_base = "\n",
+			.iov_len = 1,
+		}
+	};
+
+	return predep_record_writev(iov, 4);
+}
+
 size_t
 prereq_record_target(const char *file) {
-	char checksum_str[20*2+1];
-	if(path_exists(file)) {
-		unsigned char checksum[20];
-		file_checksum_compute(file, checksum);
-		hexstring_from_checksum(checksum_str, checksum);
-	} else {
-		// virtual target
-		str_copy(checksum_str, "0000000000000000000000000000000000000000");
+	if(!path_exists(file)) { // virtual target
+		return prereq_record_virtual(file);
 	}
+	char checksum_str[20*2+1];
+	unsigned char checksum[20];
+	file_checksum_compute(file, checksum);
+	hexstring_from_checksum(checksum_str, checksum);
 
 	struct iovec iov[] = {
 		{
