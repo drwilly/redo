@@ -145,7 +145,7 @@ prereq_record_virtual(const char *file) {
 			.iov_base = "\t",
 			.iov_len = 1,
 		}, {
-			.iov_base = file,
+			.iov_base = (void *)file,
 			.iov_len = str_len(file),
 		}, {
 			.iov_base = "\n",
@@ -174,7 +174,7 @@ prereq_record_target(const char *file) {
 			.iov_base = "\t",
 			.iov_len = 1,
 		}, {
-			.iov_base = file,
+			.iov_base = (void *)file,
 			.iov_len = str_len(file),
 		}, {
 			.iov_base = "\t",
@@ -206,7 +206,7 @@ prereq_record_source(const char *file) {
 			.iov_base = "\t",
 			.iov_len = 1,
 		}, {
-			.iov_base = file,
+			.iov_base = (void *)file,
 			.iov_len = str_len(file),
 		}, {
 			.iov_base = "\t",
@@ -233,7 +233,7 @@ prereq_record_absent(const char *file) {
 			.iov_base = "\t",
 			.iov_len = 1,
 		}, {
-			.iov_base = file,
+			.iov_base = (void *)file,
 			.iov_len = str_len(file),
 		}, {
 			.iov_base = "\n",
