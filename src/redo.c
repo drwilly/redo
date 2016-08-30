@@ -198,6 +198,17 @@ cleanup_dbfile:
 	return err;
 }
 
+void
+shuffle_array(unsigned int seed, char *arr[], size_t len) {
+	srand(seed);
+	for(int i = len - 1; i >= 1; i--) {
+		int j = (rand() % i);
+		char *tmp = arr[i];
+		arr[i] = arr[j];
+		arr[j] = tmp;
+	}
+}
+
 // TODO remove
 #define len(x) (sizeof(x) / sizeof(*x))
 
@@ -234,21 +245,15 @@ main(int argc, char *argv[]) {
 		set_info_routine(&redo_info);
 	}
 
-	unsigned int seed = redo_getenv_int(REDO_ENV_SHUFFLE, 0);
-	if(seed) {
-		srand(seed);
-		for(int i = argc - 1; i >= 2; i--) {
-			int j = (rand() % i) + 1;
-			char *tmp = argv[i];
-			argv[i] = argv[j];
-			argv[j] = tmp;
-		}
-	}
-
-	if(argc <= 1) {
+	if(argc == 1) {
 		char *newargv[] = { "redo", REDO_DEFAULT_TARGET, (char *)NULL };
 		argc = 2;
 		argv = newargv;
+	} else if(argc > 2) {
+		unsigned int seed = redo_getenv_int(REDO_ENV_SHUFFLE, 0);
+		if(seed) {
+			shuffle_array(seed, argv + 1, argc - 1);
+		}
 	}
 
 	int rv = 0;
