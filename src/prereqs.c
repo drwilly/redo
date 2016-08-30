@@ -55,9 +55,9 @@ prereq_changed_virtual(const char *file) {
 
 static
 int
-prereqs_changed(int db_fd) {
+prereqs_changed(int dbfd) {
 	char buf[BUFFER_INSIZE];
-	buffer b = BUFFER_INIT(&buffer_read, db_fd, buf, BUFFER_INSIZE);
+	buffer b = BUFFER_INIT(&buffer_read, dbfd, buf, BUFFER_INSIZE);
 
 	stralloc ln = STRALLOC_ZERO;
 	int changed = 0;
