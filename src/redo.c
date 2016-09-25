@@ -16,13 +16,11 @@
 
 static
 int
-lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const char *target) {
-	stralloc_string_basename(targetfile, target, str_len(target));
-
-	stralloc_copy(dofile, targetfile);
+lookup_params(stralloc *dofile, stralloc *basename, char *targetfile) {
+	stralloc_copyb(dofile, targetfile, str_len(targetfile) + 1);
 	stralloc_string_cats1(dofile, ".do");
 
-	stralloc_copy(basename, targetfile);
+	stralloc_copyb(basename, targetfile, str_len(targetfile) + 1);
 
 	if(path_exists(dofile->s)) {
 		prereq_record_source(dofile->s);
@@ -31,18 +29,20 @@ lookup_params(stralloc *dofile, stralloc *targetfile, stralloc *basename, const 
 		prereq_record_absent(dofile->s);
 	}
 
-	static const char *const wildcards[] = { "_", "default", NULL };
-	for(int i = 0; wildcards[i]; i++) {
-		dofile->len = 0;
-		stralloc_string_cats3(dofile, wildcards[i], targetfile->s + str_chr(targetfile->s, '.'), ".do");
+	for(char *s = targetfile + str_chr(targetfile, '.'); *s; s += str_chr(s + 1, '.') + 1) {
+		static const char *const wildcards[] = { "_", "default", NULL };
+		for(char **w = wildcards; *w; w++) {
+			dofile->len = 0;
+			stralloc_string_cats3(dofile, *w, s, ".do");
 
-		if(path_exists(dofile->s)) {
-			basename->len = (basename->len-1) - ((dofile->len-1) - str_len(wildcards[i]) - str_len(".do"));
-			basename->s[basename->len++] = '\0';
-			prereq_record_source(dofile->s);
-			return 1;
-		} else {
-			prereq_record_absent(dofile->s);
+			if(path_exists(dofile->s)) {
+				basename->len = (basename->len-1) - ((dofile->len-1) - str_len(*w) - str_len(".do"));
+				basename->s[basename->len++] = '\0';
+				prereq_record_source(dofile->s);
+				return 1;
+			} else {
+				prereq_record_absent(dofile->s);
+			}
 		}
 	}
 
@@ -60,18 +60,22 @@ build(const char *target, int dbfd, int outfd) {
 			die_errno("fd_move2(%d, %d, %d, %d) failed", 3, dbfd, 1, outfd);
 		}
 
-		stralloc workdir = STRALLOC_ZERO;
-		stralloc_string_dirname(&workdir, target, str_len(target));
-		if(chdir(workdir.s) == -1) {
-			die_errno("chdir('%s') failed", workdir.s);
+		unsigned int sep_offset = str_rchr(target, '/');
+		const char *targetfile = target;
+		if(target[sep_offset] != '\0') {
+			char workdir[sep_offset + 1];
+			byte_copy(workdir, sep_offset, target);
+			workdir[sep_offset] = '\0';
+			if(chdir(workdir) == -1) {
+				die_errno("chdir('%s') failed", workdir);
+			}
+			targetfile += sep_offset + 1;
 		}
-		stralloc_free(&workdir);
 
-		stralloc targetfile = STRALLOC_ZERO;
 		stralloc dofile = STRALLOC_ZERO;
 		stralloc basename = STRALLOC_ZERO;
 
-		if(!lookup_params(&dofile, &targetfile, &basename, target)) {
+		if(!lookup_params(&dofile, &basename, targetfile)) {
 			die("No dofile for target '%s'. Stop.", target);
 		}
 
@@ -79,12 +83,11 @@ build(const char *target, int dbfd, int outfd) {
 
 		redo_setenv_int(REDO_ENV_DEPTH, redo_getenv_int(REDO_ENV_DEPTH, 0) + 1);
 
-		stralloc dotslashdofile = STRALLOC_ZERO;
-		stralloc_string_cats2(&dotslashdofile, "./", dofile.s);
+		stralloc_insertb(&dofile, 0, "./", 2);
 
-		execlp(dotslashdofile.s, dofile.s, targetfile.s, basename.s, "/dev/fd/1", (char *)NULL);
+		execlp(dofile.s, dofile.s + 2, targetfile, basename.s, "/dev/fd/1", (char *)NULL);
 		die_errno("execlp('%s', '%s', '%s', '%s', '%s', NULL) failed",
-			dotslashdofile.s, dofile.s, targetfile.s, basename.s, "/dev/fd/1"
+			dofile.s, dofile.s + 2, targetfile, basename.s, "/dev/fd/1"
 		);
 	} else {
 		int status;
