@@ -24,7 +24,11 @@ args_filter_unchanged(int argc, char *argv[]) {
 			argv[c++] = argv[i];
 		} else {
 			// target (deps unchanged)
-			prereq_record_target(argv[i]);
+			if(path_exists(argv[i])) {
+				prereq_record_target(argv[i]);
+			} else {
+				argv[c++] = argv[i];
+			}
 		}
 	}
 
