@@ -1,9 +1,10 @@
-redo-ifchange cc
+set -e
 
-trap "exit 1"          1 2 3 15
-trap "rm -f -- '$2.d'" 0
+redo-ifchange cc
 
 ./cc -MD -MF "$2.d" -MT "" -o "$3" "src/$2.c"
 
-read DEPS < "$2.d"
+exec < "$2.d"
+rm -f -- "$2.d"
+read DEPS
 redo-ifchange ${DEPS#:}

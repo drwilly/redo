@@ -1,3 +1,5 @@
+set -e
+
 redo-ifchange config.sh
 
 . ./config.sh
@@ -6,7 +8,7 @@ chmod +x "$3"
 
 LIB="-lskarnet"
 
-cat <<-EOF
-	#!/bin/sh
+tee <<-EOF
+	#!/bin/sh -e
 	exec $CC $LDFLAGS "\$@" $LIBPATH $LIB
 EOF

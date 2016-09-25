@@ -1,3 +1,5 @@
+set -e
+
 redo-ifchange config.sh redo redo-ifchange redo-ifcreate
 
 . ./config.sh

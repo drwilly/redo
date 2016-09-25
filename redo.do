@@ -1,3 +1,5 @@
+set -e
+
 IFS=$(printf '\n\t')
 OBJ=$(sed -e '/^$/d' <<-EOF
 	checksum.o

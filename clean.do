@@ -1,3 +1,5 @@
+set -e
+
 #rm -f -- *:redo.out
 #rm -f -- *:redo.db
 rm -f -- *.prereqs
