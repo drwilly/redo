@@ -30,4 +30,4 @@ https://github.com/apenwarr/redo
 https://github.com/jekor/redo
 
 ## Jonathan de Boyne Pollard's implementation of redo in C++
-http://homepage.ntlworld.com/jonathan.deboynepollard/Softwares/redo.html
+https://jdebp.eu/Softwares/redo/
