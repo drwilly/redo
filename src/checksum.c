@@ -38,9 +38,24 @@ sha1_file(const char *file, char digest[20]) {
 
 void (*file_checksum_compute)(const char *file, char *checksum) = &sha1_file;
 
+static void
+checksum_str_from_checksum(char *checksum_str, const char *checksum) {
+	for(int i = 0; i < 20; i++) {
+		checksum_str[2*i+0] = hexdigit[(checksum[i] & 0xf0) >> 4];
+		checksum_str[2*i+1] = hexdigit[(checksum[i] & 0x0f) >> 0];
+	}
+}
+
+void
+file_checksum_str_compute(const char *file, char checksum_str[20*2+1]) {
+	unsigned char checksum[20];
+	file_checksum_compute(file, checksum);
+	checksum_str_from_checksum(checksum_str, checksum);
+}
+
 int
-file_checksum_changed(const char *file, const char checksum_str[20*2+1]) {
-	char checksum[20];
+file_checksum_str_changed(const char *file, const char checksum_str[20*2+1]) {
+	unsigned char checksum[20];
 	file_checksum_compute(file, checksum);
 	for(int i = 0; i < 20; i++) {
 		if(checksum_str[2*i+0] != hexdigit[(checksum[i] & 0xf0) >> 4]) return 1;
@@ -48,12 +63,4 @@ file_checksum_changed(const char *file, const char checksum_str[20*2+1]) {
 	}
 
 	return 0;
-}
-
-void
-hexstring_from_checksum(char *checksum_str, const char *checksum) {
-	for(int i = 0; i < 20; i++) {
-		checksum_str[2*i+0] = hexdigit[(checksum[i] & 0xf0) >> 4];
-		checksum_str[2*i+1] = hexdigit[(checksum[i] & 0x0f) >> 0];
-	}
 }

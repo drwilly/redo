@@ -38,13 +38,13 @@ prereq_created(const char *file) {
 static
 int
 prereq_changed_source(const char *file, const char *checksum_str) {
-	return !path_exists(file) || file_checksum_changed(file, checksum_str);
+	return !path_exists(file) || file_checksum_str_changed(file, checksum_str);
 }
 
 static
 int
 prereq_changed_target(const char *file, const char *checksum_str) {
-	return !path_exists(file) || file_checksum_changed(file, checksum_str) || prereqs_changedfor(file);
+	return !path_exists(file) || file_checksum_str_changed(file, checksum_str) || prereqs_changedfor(file);
 }
 
 static
@@ -162,9 +162,7 @@ prereq_record_target(const char *file) {
 		return prereq_record_virtual(file);
 	}
 	char checksum_str[20*2+1];
-	unsigned char checksum[20];
-	file_checksum_compute(file, checksum);
-	hexstring_from_checksum(checksum_str, checksum);
+	file_checksum_str_compute(file, checksum_str);
 
 	struct iovec iov[] = {
 		{
@@ -193,10 +191,8 @@ prereq_record_target(const char *file) {
 
 size_t
 prereq_record_source(const char *file) {
-	unsigned char checksum[20];
 	char checksum_str[20*2+1];
-	file_checksum_compute(file, checksum);
-	hexstring_from_checksum(checksum_str, checksum);
+	file_checksum_str_compute(file, checksum_str);
 
 	struct iovec iov[] = {
 		{
