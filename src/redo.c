@@ -251,7 +251,7 @@ main(int argc, char *argv[]) {
 	}
 
 	if(argc == 1) {
-		char *newargv[] = { "redo", REDO_DEFAULT_TARGET, (char *)NULL };
+		char *newargv[] = { argv[0], REDO_DEFAULT_TARGET, (char *)NULL };
 		argc = 2;
 		argv = newargv;
 	} else if(argc > 2) {
