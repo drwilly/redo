@@ -14,9 +14,11 @@
 
 #include "redo.h"
 
+extern int ftruncate(int, off_t);
+
 static
 int
-lookup_params(stralloc *dofile, stralloc *basename, char *targetfile) {
+lookup_params(stralloc *dofile, stralloc *basename, const char *targetfile) {
 	stralloc_copyb(dofile, targetfile, str_len(targetfile) + 1);
 	stralloc_string_cats1(dofile, ".do");
 
@@ -29,9 +31,9 @@ lookup_params(stralloc *dofile, stralloc *basename, char *targetfile) {
 		prereq_record_absent(dofile->s);
 	}
 
-	for(char *s = targetfile + str_chr(targetfile, '.'); *s; s += str_chr(s + 1, '.') + 1) {
+	for(const char *s = targetfile + str_chr(targetfile, '.'); *s; s += str_chr(s + 1, '.') + 1) {
 		static const char *const wildcards[] = { "_", "default", NULL };
-		for(char **w = wildcards; *w; w++) {
+		for(const char *const *w = wildcards; *w; w++) {
 			dofile->len = 0;
 			stralloc_string_cats3(dofile, *w, s, ".do");
 

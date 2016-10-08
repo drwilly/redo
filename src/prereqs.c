@@ -1,5 +1,7 @@
-#include <skalibs/stddjb.h>
+#include <skalibs/djbunix.h>
+#include <skalibs/bytestr.h>
 #include <skalibs/buffer.h>
+#include <skalibs/skamisc.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -10,6 +12,8 @@
 #include "checksum.h"
 
 #include "prereqs.h"
+
+extern int rename(const char *, const char *);
 
 static const char *dbfile_suffix = ".prereqs";
 

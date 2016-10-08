@@ -4,6 +4,8 @@
 #include "reporting.h"
 #include "environment.h"
 
+extern int setenv(const char *, const char *, int);
+
 int
 redo_getenv_int(const char *k, int def) {
 	const char *v =	getenv(k);
