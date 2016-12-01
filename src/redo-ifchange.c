@@ -12,7 +12,7 @@ args_filter_unchanged(int argc, char *argv[]) {
 	int c = 1;
 	for(int i = 1; i < argc; i++) {
 		if(prereqs_existfor(argv[i])) {
-			if(!prereqs_changedfor(argv[i])) {
+			if(path_exists(argv[i]) && !prereqs_changedfor(argv[i])) {
 				// target (deps unchanged)
 				prereq_record_target(argv[i]);
 			} else {
