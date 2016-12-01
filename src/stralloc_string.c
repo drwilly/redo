@@ -43,26 +43,27 @@ stralloc_string_cats3(stralloc *sa, const char *str1, const char *str2, const ch
 	return stralloc_string_catv_internal(sa, v, 3+1);
 }
 
-static
 int
-stralloc_string_xname_internal(stralloc *sa, const char *path, size_t pathlen, int (*fn)(stralloc *, const char *, unsigned int)) {
-	size_t oldlen = sa->len;
-	if(sa->s && sa->len > 0) sa->len--;
-	if(!fn(sa, path, pathlen)) goto err;
-	if(!stralloc_0(sa)) goto err;
-	return 1;
-err:
-	sa->len = oldlen;
-	sa->s[sa->len-1] = '\0';
-	return 0;
+stralloc_string_cats4(stralloc *sa, const char *str1, const char *str2, const char *str3, const char *str4) {
+	siovec_t v[4+1] = {
+		{ .s = (char *)str1, .len = str_len(str1) },
+		{ .s = (char *)str2, .len = str_len(str2) },
+		{ .s = (char *)str3, .len = str_len(str3) },
+		{ .s = (char *)str4, .len = str_len(str4) },
+		{ .s = "", .len = 1 },
+	};
+	return stralloc_string_catv_internal(sa, v, 4+1);
 }
 
 int
-stralloc_string_dirname(stralloc *sa, const char *path, size_t pathlen) {
-	return stralloc_string_xname_internal(sa, path, pathlen, &sadirname);
-}
-
-int
-stralloc_string_basename(stralloc *sa, const char *path, size_t pathlen) {
-	return stralloc_string_xname_internal(sa, path, pathlen, &sabasename);
+stralloc_string_cats5(stralloc *sa, const char *str1, const char *str2, const char *str3, const char *str4, const char *str5) {
+	siovec_t v[5+1] = {
+		{ .s = (char *)str1, .len = str_len(str1) },
+		{ .s = (char *)str2, .len = str_len(str2) },
+		{ .s = (char *)str3, .len = str_len(str3) },
+		{ .s = (char *)str4, .len = str_len(str4) },
+		{ .s = (char *)str5, .len = str_len(str5) },
+		{ .s = "", .len = 1 },
+	};
+	return stralloc_string_catv_internal(sa, v, 5+1);
 }

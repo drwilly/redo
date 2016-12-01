@@ -13,35 +13,35 @@
 #include "reporting.h"
 
 void
-vreportf(const char *prefix, const char *fmt, va_list params) {
+vreportf(const char *prefix, const char *suffix, const char *fmt, va_list params) {
 	char msg[4096];
 	vsnprintf(msg, sizeof(msg), fmt, params);
-	fprintf(stderr, "%s%s\n", prefix, msg);
+	fprintf(stderr, "%s%s%s\n", prefix, msg, suffix);
 }
 
 static
 NORETURN void
 die_builtin(const char *fmt, va_list params) {
-	vreportf("[X] ", fmt, params);
+	vreportf("[X] ", "", fmt, params);
 	exit(128);
 }
 
 static
 void
 error_builtin(const char *fmt, va_list params) {
-	vreportf("[E]", fmt, params);
+	vreportf("[E]", "", fmt, params);
 }
 
 static
 void
 warn_builtin(const char *fmt, va_list params) {
-	vreportf("[W] ", fmt, params);
+	vreportf("[W] ", "", fmt, params);
 }
 
 static
 void
 info_builtin(const char *fmt, va_list params) {
-	vreportf("[I] ", fmt, params);
+	vreportf("[I] ", "", fmt, params);
 }
 
 static

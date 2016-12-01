@@ -81,9 +81,13 @@ build(const char *target, int dbfd, int outfd) {
 			die("No dofile for target '%s'. Stop.", target);
 		}
 
-		info("%s:%s", dofile.s, target);
-
-		redo_setenv_int(REDO_ENV_DEPTH, redo_getenv_int(REDO_ENV_DEPTH, 0) + 1);
+		stralloc infostr = STRALLOC_ZERO;
+		stralloc_string_cats5(&infostr,
+			redo_getenv_str(REDO_ENV_PARENTS, ""), "\t", dofile.s, ":", target
+		);
+		redo_setenv_str(REDO_ENV_PARENTS, infostr.s);
+		stralloc_free(&infostr);
+		info("%s", "...");
 
 		stralloc_insertb(&dofile, 0, "./", 2);
 
@@ -214,29 +218,38 @@ shuffle_array(unsigned int seed, char *arr[], size_t len) {
 	}
 }
 
-// TODO remove
-#define len(x) (sizeof(x) / sizeof(*x))
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define RED     "\033[31m"
+#define BOLD    "\033[1m"
+#define PLAIN   "\033[m"
 
 void
 redo_err(const char *fmt, va_list params) {
-	char msg[4096];
-	vsnprintf(msg, len(msg), fmt, params);
-	fprintf(stderr, "\033[31m%-*s\033[1m%s\033[m\n", 4 + (2 * (1 + redo_getenv_int(REDO_ENV_DEPTH, 0))), "redo", msg);
+	char prefix[4096];
+	snprintf(prefix, sizeof(prefix), "%s%s\t", RED"redo"BOLD, redo_getenv_str(REDO_ENV_PARENTS, ""));
+	vreportf(prefix, PLAIN, fmt, params);
 }
 
 void
 redo_warn(const char *fmt, va_list params) {
-	char msg[4096];
-	vsnprintf(msg, len(msg), fmt, params);
-	fprintf(stderr, "\033[33m%-*s\033[1m%s\033[m\n", 4 + (2 * (1 + redo_getenv_int(REDO_ENV_DEPTH, 0))), "redo", msg);
+	char prefix[4096];
+	snprintf(prefix, sizeof(prefix), "%s%s\t", YELLOW"redo"BOLD, redo_getenv_str(REDO_ENV_PARENTS, ""));
+	vreportf(prefix, PLAIN, fmt, params);
 }
 
 void
 redo_info(const char *fmt, va_list params) {
-	char msg[4096];
-	vsnprintf(msg, len(msg), fmt, params);
-	fprintf(stderr, "\033[32m%-*s\033[1m%s\033[m\n", 4 + (2 * (1 + redo_getenv_int(REDO_ENV_DEPTH, 0))), "redo", msg);
+	char prefix[4096];
+	snprintf(prefix, sizeof(prefix), "%s%s\t", GREEN"redo"BOLD, redo_getenv_str(REDO_ENV_PARENTS, ""));
+	vreportf(prefix, PLAIN, fmt, params);
 }
+
+#undef GREEN
+#undef YELLOW
+#undef RED
+#undef BOLD
+#undef PLAIN
 
 int
 main(int argc, char *argv[]) {

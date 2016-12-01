@@ -3,11 +3,11 @@
 # Copyright (c) 2014  Wilke Schwiedop
 
 log() {
-	printf "${GREEN}redo%$(((REDO_DEPTH+1)*2))s${BOLD}%s${PLAIN}\\n" "" "$1" >&2
+	printf "${GREEN}redo${BOLD}${REDO_PARENTS}\t%s${PLAIN}\n" "$1" >&2
 }
 
 err() {
-	printf "${RED}redo%$(((REDO_DEPTH+1)*2))s${BOLD}%s${PLAIN}\\n" "" "$1" >&2
+	printf "${RED}redo${BOLD}${REDO_PARENTS}\t%s${PLAIN}\n" "$1" >&2
 }
 
 timestamp() {
@@ -66,11 +66,11 @@ run_dofile() {
 	if [ "$line1" != "${line1#\#!}" ]; then
 		${line1#\#!} "$dofile" "$1" "$2" "$3"
 	else
-		( . "$dofile" )
+		( . ./"$dofile" )
 	fi
 }
 
-if [ ${REDO_DEPTH:=0} -eq 0 ]; then
+if [ -z "${REDO_PARENTS}" ]; then
 	# if no target is given on the command line
 	# default to target "all"
 	[ $# -eq 0 ] && set -- all 
@@ -111,8 +111,6 @@ for target; do
 		fi
 	fi
 
-	log "${dofile##*/}:$target"
-
 	basename="${target##*/}"
 	if [ "${dofile##*/}" = "${basename}.do" ]; then
 		basename="${basename%.*}"
@@ -126,12 +124,13 @@ for target; do
 	tmpfile="${targetfile}:redo.out"
 
 	(
-	export REDO_DEPTH=$((REDO_DEPTH + 1))
-
 	cd "${dofile%/*}"
-
+	dofile="${dofile##*/}"
 	# targetfile relative to dofile
 	targetfile="${targetfile#$PWD/}"
+
+	export REDO_PARENTS="${REDO_PARENTS}\t${dofile}:${targetfile}"
+	log "..."
 
 	set -o noclobber
 	# if this fails some other process is working on this target already.

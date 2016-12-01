@@ -6,7 +6,7 @@
 #define NORETURN __attribute__((__noreturn__))
 #define NORETURN_PTR __attribute__((__noreturn__))
 
-void vreportf(const char *prefix, const char *fmt, va_list params);
+void vreportf(const char *prefix, const char *suffix, const char *fmt, va_list params);
 
 void set_die_routine(NORETURN_PTR void (*routine)(const char *fmt, va_list params));
 void set_error_routine(void (*routine)(const char *fmt, va_list params));
