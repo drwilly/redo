@@ -111,7 +111,7 @@ redo(const char *target) {
 	stralloc_string_cats2(&dbfile, target, ":redo.db");
 
 	int outfile_isempty = 0;
-	int outfile_needstruncate = 0;
+	int dbfile_needstruncate = 0;
 	// TODO don't discard errno info
 	int dbfd = open_excl(dbfile.s);
 	if(dbfd == -1) {
@@ -126,7 +126,7 @@ redo(const char *target) {
 			err = 1;
 			goto cleanup_dbfile;
 		}
-		outfile_needstruncate = 1;
+		dbfile_needstruncate = 1;
 	}
 	if(lock_exnb(dbfd) == -1) {
 		if(errno != EWOULDBLOCK) {
@@ -143,7 +143,7 @@ redo(const char *target) {
 		goto cleanup_dbfd;
 	}
 
-	if(outfile_needstruncate && ftruncate(dbfd, 0) == -1) {
+	if(dbfile_needstruncate && ftruncate(dbfd, 0) == -1) {
 		error("ftruncate(%d, %d) failed", dbfd, 0);
 		err = 1;
 		goto cleanup_dbfd;
