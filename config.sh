@@ -1,4 +1,3 @@
-DESTDIR=""
 PREFIX="$HOME"
 
 CC="clang"
