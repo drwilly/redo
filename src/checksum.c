@@ -1,3 +1,5 @@
+#include <sys/stat.h>
+
 #include <skalibs/stddjb.h>
 #include <skalibs/stdcrypto.h>
 
@@ -24,7 +26,7 @@ sha1_file(const char *file, char digest[20]) {
 #endif
 
 	SHA1Schedule ctx;
-	size_t messagelen;
+	ssize_t messagelen;
 	char message[count];
 
 	sha1_init(&ctx);

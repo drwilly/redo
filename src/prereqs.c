@@ -65,7 +65,7 @@ prereqs_changed(int dbfd) {
 
 	stralloc ln = STRALLOC_ZERO;
 	int changed = 0;
-	int r;
+	ssize_t r;
 	while(!changed && (r = skagetln(&b, &ln, '\n')) > 0) {
 		char *dep[3]; // FIXME
 		int i;
@@ -128,18 +128,18 @@ prereqs_changedfor(const char *target) {
 }
 
 static
-size_t
+ssize_t
 predep_record_writev(struct iovec *iov, size_t n) {
 	size_t total = 0;
 	for(int i = 0; i < n; i++) {
 		total += iov[i].iov_len;
 	}
-	size_t w = fd_writev(3, iov, n);
+	ssize_t w = fd_writev(3, iov, n);
 	return (w == -1) ? w : total - w;
 }
 
 static
-size_t
+ssize_t
 prereq_record_virtual(const char *file) {
 	struct iovec iov[] = {
 		{
@@ -160,7 +160,7 @@ prereq_record_virtual(const char *file) {
 	return predep_record_writev(iov, 4);
 }
 
-size_t
+ssize_t
 prereq_record_target(const char *file) {
 	if(!path_exists(file)) { // virtual target
 		return prereq_record_virtual(file);
@@ -193,7 +193,7 @@ prereq_record_target(const char *file) {
 	return predep_record_writev(iov, 6);
 }
 
-size_t
+ssize_t
 prereq_record_source(const char *file) {
 	char checksum_str[20*2+1];
 	file_checksum_str_compute(file, checksum_str);
@@ -223,7 +223,7 @@ prereq_record_source(const char *file) {
 	return predep_record_writev(iov, 6);
 }
 
-size_t
+ssize_t
 prereq_record_absent(const char *file) {
 	struct iovec iov[] = {
 		{

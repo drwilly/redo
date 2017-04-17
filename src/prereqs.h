@@ -6,8 +6,8 @@ extern int      prereqs_changedfor(const char *target);
 
 extern int      prereqs_renamefor(const char *target, const char *tmpfile);
 
-extern size_t   prereq_record_target(const char *file);
-extern size_t   prereq_record_source(const char *file);
-extern size_t   prereq_record_absent(const char *file);
+extern ssize_t  prereq_record_target(const char *file);
+extern ssize_t  prereq_record_source(const char *file);
+extern ssize_t  prereq_record_absent(const char *file);
 
 #endif

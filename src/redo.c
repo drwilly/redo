@@ -1,8 +1,11 @@
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include <skalibs/djbunix.h>
+#include <skalibs/bytestr.h>
 
 #include "reporting.h"
 #include "environment.h"

@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include <skalibs/djbunix.h>
 
 #include "reporting.h"

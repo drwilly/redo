@@ -11,7 +11,7 @@ You might want to edit the file config.sh to suite your needs.
     $ bootstrap/redo clean install
 
 # Dependencies
-- skalibs	: http://skarnet.org/software/skalibs/
+- skalibs >= 2.5.0.0	: http://skarnet.org/software/skalibs/
 
 # Changes to djb's original design
 ## The "\_" wildcard
