@@ -191,9 +191,7 @@ cleanup_outfd:
 	if((outfile_isempty || err) && unlink(outfile.s) == -1) {
 		error("unlink('%s') failed", outfile.s);
 	}
-	if(fd_close(outfd) == -1) {
-		error("fd_close(%d) failed", outfd);
-	}
+	fd_close(outfd);
 cleanup_outfile:
 	stralloc_free(&outfile);
 	// lock on dbfd is released when fd is closed
@@ -201,9 +199,7 @@ cleanup_dbfd:
 	if(err && unlink(dbfile.s) == -1) {
 		error("unlink('%s') failed", dbfile.s);
 	}
-	if(fd_close(dbfd) == -1) {
-		error("fd_close(%d) failed", dbfd);
-	}
+	fd_close(dbfd);
 cleanup_dbfile:
 	stralloc_free(&dbfile);
 
