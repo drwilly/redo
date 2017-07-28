@@ -17,6 +17,9 @@ You might want to edit the file config.sh to suite your needs.
 ## The "\_" wildcard
 djb intended the string "default" to be used as a wildcard string, e.g. "default.o.do" when looking for dofiles.
 credo uses both "default" and "\_" (preferring the latter), e.g. "\_.o.do"
+## Dependencies
+djb mentions three different kinds of dependencies: source-, target- and absent-files.
+credo additionally uses "virtual" in it's prereqs to indicate targets that do not produce output.
 
 # credits
 ## djb
