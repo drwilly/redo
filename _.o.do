@@ -6,5 +6,6 @@ redo-ifchange cc
 
 exec < "$2.d"
 rm -f -- "$2.d"
+IFS=$(printf '\n \t')
 read DEPS
 redo-ifchange ${DEPS#:}
