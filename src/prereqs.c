@@ -121,10 +121,31 @@ prereqs_opencheckclose(const char *file) {
 
 int
 prereqs_changedfor(const char *target) {
-	char dbfile[str_len(target) + str_len(dbfile_suffix) + 1];
-	str_copy(dbfile, target);
-	str_copy(dbfile + str_len(target), dbfile_suffix);
-	return prereqs_opencheckclose(dbfile);
+	int pwdfd = AT_FDCWD;
+	unsigned int sep_offset = str_rchr(target, '/');
+	const char *targetfile = target;
+	if(target[sep_offset] != '\0') {
+		pwdfd = open(".", O_CLOEXEC|O_DIRECTORY);
+		if(pwdfd == -1) {
+			die_errno("open('.', O_CLOEXEC|O_DIRECTORY) failed");
+		}
+		char workdir[sep_offset + 1];
+		byte_copy(workdir, sep_offset, target);
+		workdir[sep_offset] = '\0';
+		if(chdir(workdir) == -1) {
+			die_errno("chdir('%s') failed", workdir);
+		}
+		targetfile += sep_offset + 1;
+	}
+	char dbfile[str_len(targetfile) + str_len(dbfile_suffix) + 1];
+	str_copy(dbfile, targetfile);
+	str_copy(dbfile + str_len(targetfile), dbfile_suffix);
+	int changed = prereqs_opencheckclose(dbfile);
+	if(pwdfd != AT_FDCWD && fchdir(pwdfd) == -1) {
+		die_errno("fchdir('%d') failed", pwdfd);
+	}
+
+	return changed;
 }
 
 static

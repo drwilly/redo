@@ -4,7 +4,7 @@ redo-ifchange config.sh
 
 . ./config.sh
 
-#CFLAGS="$CFLAGS -D_"
+CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200809L"
 
 INC="$INC -I src/"
 
