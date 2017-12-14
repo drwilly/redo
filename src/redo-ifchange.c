@@ -30,27 +30,6 @@ args_filter_unchanged(int argc, char *argv[]) {
 				argv[c++] = argv[i];
 			}
 		}
-		/*
-		if(!prereqs_existfor(argv[i])) {
-			if(path_exists(argv[i])) {
-				// not a build target
-				prereq_record_source(argv[i]);
-			} else {
-				// target (clean build)
-				argv[c++] = argv[i];
-			}
-		} else if(prereqs_changedfor(argv[i])) {
-			// target (deps changed)
-			argv[c++] = argv[i];
-		} else {
-			// target (deps unchanged)
-			if(path_exists(argv[i])) {
-				prereq_record_target(argv[i]);
-			} else {
-				argv[c++] = argv[i];
-			}
-		}
-		*/
 	}
 
 	return c;
