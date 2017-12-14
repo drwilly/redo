@@ -125,9 +125,9 @@ prereqs_changedfor(const char *target) {
 	unsigned int sep_offset = str_rchr(target, '/');
 	const char *targetfile = target;
 	if(target[sep_offset] != '\0') {
-		pwdfd = open(".", O_CLOEXEC|O_DIRECTORY);
+		pwdfd = open2(".", O_CLOEXEC|O_DIRECTORY);
 		if(pwdfd == -1) {
-			die_errno("open('.', O_CLOEXEC|O_DIRECTORY) failed");
+			die_errno("open2('.', O_CLOEXEC|O_DIRECTORY) failed");
 		}
 		char workdir[sep_offset + 1];
 		byte_copy(workdir, sep_offset, target);
