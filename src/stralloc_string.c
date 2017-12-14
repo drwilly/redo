@@ -6,11 +6,11 @@ static
 int
 stralloc_string_catv_internal(stralloc *sa, struct iovec const *iov, size_t n) {
 	if(sa->s && sa->len > 0) sa->len--;
-	if(!stralloc_catv(sa, iov, n)) goto err;
+	if(!stralloc_catv(sa, iov, n)) {
+		sa->len++;
+		return 0;
+	}
 	return 1;
-err:
-	sa->len++;
-	return 0;
 }
 
 int
