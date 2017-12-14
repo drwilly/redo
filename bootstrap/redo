@@ -3,14 +3,16 @@
 # Copyright (c) 2014  Wilke Schwiedop
 
 set -e
-IFS=$(printf '\n\t')
+export IFS="$(printf '\n\t')"
 
 log() {
-	printf "${GREEN}redo${BOLD}${REDO_PARENTS}\t%s${PLAIN}\n" $1 >&2
+	local IFS=" "
+	printf "${GREEN}redo${BOLD}${REDO_PARENTS}\t%s${PLAIN}\n" "$*" >&2
 }
 
 err() {
-	printf "${RED}redo${BOLD}${REDO_PARENTS}\t%s${PLAIN}\n" $1 >&2
+	local IFS=" "
+	printf "${RED}redo${BOLD}${REDO_PARENTS}\t%s${PLAIN}\n" "$*" >&2
 }
 
 timestamp() {
@@ -41,7 +43,7 @@ find_dofile_pwd() {
 				return
 			fi
 		done
-	done 
+	done
 }
 
 find_dofile() {
@@ -60,25 +62,16 @@ find_dofile() {
 	done
 }
 
-run_dofile() {
-	local dofile=$1
-	local line1
-	shift
-
-	read line1 < $dofile
-	if [ $line1 != ${line1#\#!} ]; then
-		${line1#\#!} $dofile $1 $2 $3
-	else
-		./$dofile $1 $2 $3
-	fi
-}
+if [ "${0##*/}" = redo-ifcreate ]; then
+	return 0
+fi
 
 if [ -z "${REDO_PARENTS}" ]; then
 	# if no target is given on the command line
 	# default to target "all"
-	[ $# -eq 0 ] && set -- all 
+	[ $# -eq 0 ] && set -- all
 
-	if [ -t 2 ] && [ $TERM != dumb ]; then
+	if [ -t 2 ] && [ "$TERM" != dumb ]; then
 		export GREEN='\033[32m'
 		export RED='\033[31m'
 		export BOLD='\033[1m'
@@ -96,32 +89,32 @@ for target; do
 		continue
 	fi
 
-	if [ $target != "${target#/}" ]; then
+	if [ "$target" != "${target#/}" ]; then
 		targetfile=$target
 	else
 		targetfile=$PWD/$target
 	fi
 	dofile=$(find_dofile $targetfile)
-	
+
 	if [ -z "$dofile" ]; then
 		# no dofile to build target
-		if [ -e $target ] && [ ${0##*/} = redo-ifchange ]; then
+		if [ -e $target ] && [ "${0##*/}" = redo-ifchange ]; then
 			# target exists -> assume target is a source file
 			continue
 		else
-			err No rule to make target '$target'. Stop.
+			err "No rule to make target '$target'. Stop."
 			exit 2
 		fi
 	fi
 
 	basename=${target##*/}
 	if [ "${dofile##*/}" = ${basename}.do ]; then
-		basename="${basename%.*}"
+		basename=${basename%.*}
 	else
-		ext="${dofile##*/}"
-		ext="${ext#*.}"
-		ext="${ext%.do}"
-		basename="${basename%.$ext}"
+		ext=${dofile##*/}
+		ext=${ext#*.}
+		ext=${ext%.do}
+		basename=${basename%.$ext}
 		unset ext
 	fi
 	tmpfile=${targetfile}:redo.out
@@ -130,10 +123,10 @@ for target; do
 	cd ${dofile%/*}
 	dofile=${dofile##*/}
 	# targetfile relative to dofile
-	targetfile="${targetfile#$PWD/}"
+	targetfile=${targetfile#$PWD/}
 
 	export REDO_PARENTS="${REDO_PARENTS}\t${dofile}:${targetfile}"
-	log ...
+	log "..."
 
 	set -o noclobber
 	# if this fails some other process is working on this target already.
@@ -149,7 +142,7 @@ for target; do
 		trap "rm -f -- '$tmpfile'" 0 # EXIT
 	fi
 
-	if run_dofile $dofile $targetfile $basename $tmpfile >| $tmpfile; then
+	if env -u IFS ./$dofile $targetfile $basename $tmpfile >| $tmpfile; then
 		# some targets such as 'all' or 'clean' do not produce output
 		if [ -s $tmpfile ]; then
 			mv $tmpfile $targetfile
