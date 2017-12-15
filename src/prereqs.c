@@ -150,7 +150,7 @@ prereqs_changedfor(const char *target) {
 
 static
 ssize_t
-predep_record_writev(struct iovec *iov, size_t n) {
+prereq_record_writev(struct iovec *iov, size_t n) {
 	size_t total = 0;
 	for(int i = 0; i < n; i++) {
 		total += iov[i].iov_len;
@@ -178,7 +178,7 @@ prereq_record_virtual(const char *file) {
 		}
 	};
 
-	return predep_record_writev(iov, 4);
+	return prereq_record_writev(iov, 4);
 }
 
 ssize_t
@@ -211,7 +211,7 @@ prereq_record_target(const char *file) {
 		}
 	};
 
-	return predep_record_writev(iov, 6);
+	return prereq_record_writev(iov, 6);
 }
 
 ssize_t
@@ -241,7 +241,7 @@ prereq_record_source(const char *file) {
 		}
 	};
 
-	return predep_record_writev(iov, 6);
+	return prereq_record_writev(iov, 6);
 }
 
 ssize_t
@@ -262,5 +262,5 @@ prereq_record_absent(const char *file) {
 		}
 	};
 
-	return predep_record_writev(iov, 4);
+	return prereq_record_writev(iov, 4);
 }
