@@ -48,13 +48,13 @@ prereq_changed_source(const char *file, const char *checksum_str) {
 static
 int
 prereq_changed_target(const char *file, const char *checksum_str) {
-	return !path_exists(file) || file_checksum_str_changed(file, checksum_str) || prereqs_changedfor(file);
+	return !path_exists(file) || file_checksum_str_changed(file, checksum_str) || !prereqs_existfor(file) || prereqs_changedfor(file);
 }
 
 static
 int
 prereq_changed_virtual(const char *file) {
-	return prereqs_changedfor(file);
+	return !prereqs_existfor(file) || prereqs_changedfor(file);
 }
 
 static
