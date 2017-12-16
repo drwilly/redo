@@ -3,6 +3,7 @@
 *.prereqs
 
 # utilities
+config.sh
 cc
 ld
 
