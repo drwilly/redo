@@ -1,5 +1,5 @@
 #!/bin/sh
-# CREDO - An implementation of djb's redo
+# redo - An implementation of djb's redo
 # Copyright (c) 2014  Wilke Schwiedop
 
 set -e
