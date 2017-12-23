@@ -92,7 +92,7 @@ build(const char *target, int dbfd, int outfd) {
 		stralloc_free(&infostr);
 		info("%s", "...");
 
-		stralloc_insertb(&dofile, 0, "./", 2);
+		stralloc_inserts(&dofile, 0, "./");
 
 		execlp(dofile.s, dofile.s + 2, targetfile, basename.s, "/dev/fd/1", (char *)NULL);
 		die_errno("execlp('%s', '%s', '%s', '%s', '%s', NULL) failed",

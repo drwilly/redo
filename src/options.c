@@ -9,8 +9,8 @@ extern int atoi(const char *);
 static
 int
 is_digitstr(const char *s) {
-	for(int i = 0; s[i]; i++) {
-		switch(s[i]) {
+	while(*s) {
+		switch(*s++) {
 		case '0': case '1':
 		case '2': case '3':
 		case '4': case '5':
@@ -77,4 +77,3 @@ args_process_options(int argc, char *argv[]) {
 
 	return c;
 }
-
