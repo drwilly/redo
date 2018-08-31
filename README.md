@@ -16,10 +16,10 @@ You might want to edit the file config.sh to suite your needs.
 # Changes to djb's original design
 ## The "\_" wildcard
 djb intended the string "default" to be used as a wildcard string, e.g. "default.o.do" when looking for dofiles.
-This implemenation uses both "default" and "\_" (preferring the latter), e.g. "\_.o.do"
+This implementation uses both "default" and "\_" (preferring the latter), e.g. "\_.o.do"
 ## Dependencies
 djb mentions three different kinds of dependencies: source-, target- and absent-files.
-This implemenation additionally uses "virtual" in it's prereqs to indicate targets that do not produce output.
+This implementation additionally uses "virtual" in its prereqs to indicate targets that do not produce output.
 
 # credits
 ## djb
@@ -29,7 +29,7 @@ for his original [design notes](https://cr.yp.to/redo.html)
 ## Avery Pennarun's implementation of redo in Python
 https://github.com/apenwarr/redo
 
-## Chris Forno's implemenation of redo in Haskell
+## Chris Forno's implementation of redo in Haskell
 https://github.com/jekor/redo
 
 ## Jonathan de Boyne Pollard's implementation of redo in C++
