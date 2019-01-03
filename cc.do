@@ -4,13 +4,16 @@ redo-ifchange config.sh
 
 . ./config.sh
 
-CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200809L"
-
-INC="$INC -I src/"
+CPPFLAGS="$CPPFLAGS -I src/"
+CFLAGS="$CFLAGS -std=c11 -D_POSIX_C_SOURCE=200809L"
 
 chmod +x "$3"
 
+: ${CC?must be set}
+: ${CPPFLAGS?must be set}
+: ${CFLAGS?must be set}
+
 tee <<-EOF
 	#!/bin/sh -e
-	exec $CC -c -std=c11 $CFLAGS $INC "\$@"
+	exec $CC $CPPFLAGS -c $CFLAGS "\$@"
 EOF

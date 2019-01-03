@@ -5,5 +5,8 @@ redo-ifchange config.sh redo redo-ifchange redo-ifcreate
 
 . ./config.sh
 
+: ${DESTDIR?must be set}
+: ${PREFIX?must be set}
+
 mkdir -p "${DESTDIR}/${PREFIX}/bin/"
 cp -v -u -t "${DESTDIR}/${PREFIX}/bin/" redo redo-ifchange redo-ifcreate

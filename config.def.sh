@@ -1,7 +1,6 @@
 : ${PREFIX:="$HOME"}
 
-CC="clang"
-CFLAGS="-g -O0 -Wall -pedantic"
-
-INC="-I'$PREFIX/include/'"
-LIBPATH="-L'$PREFIX/lib/' -Wl,-rpath='\$ORIGIN/../lib/'"
+: ${CC:="clang"}
+: ${CPPFLAGS:="-I'\$PREFIX/include/'"}
+: ${CFLAGS:="-g -O0 -Wall -pedantic"}
+: ${LDFLAGS:="-L'\$PREFIX/lib/' -Wl,-rpath='\$ORIGIN/../lib/'"}

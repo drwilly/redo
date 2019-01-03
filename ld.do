@@ -6,9 +6,13 @@ redo-ifchange config.sh
 
 chmod +x "$3"
 
-LIB="-lskarnet"
+LDLIBS="-lskarnet"
+
+: ${CC?must be set}
+: ${LDFLAGS?must be set}
+: ${LDLIBS?must be set}
 
 tee <<-EOF
 	#!/bin/sh -e
-	exec $CC $LDFLAGS "\$@" $LIBPATH $LIB
+	exec $CC $LDFLAGS "\$@" $LDLIBS
 EOF
