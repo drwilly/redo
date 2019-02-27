@@ -1,3 +1,3 @@
 set -e
 
-redo-ifchange redo redo-ifchange redo-ifcreate
+xargs -d '\n' -a env/PROGS redo-ifchange

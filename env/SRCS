@@ -1,0 +1,7 @@
+src/checksum.c
+src/environment.c
+src/options.c
+src/path.c
+src/prereqs.c
+src/reporting.c
+src/stralloc_string.c

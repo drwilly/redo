@@ -9,11 +9,7 @@ CFLAGS="$CFLAGS -std=c11 -D_POSIX_C_SOURCE=200809L"
 
 chmod +x "$3"
 
-: ${CC?must be set}
-: ${CPPFLAGS?must be set}
-: ${CFLAGS?must be set}
-
 tee <<-EOF
 	#!/bin/sh -e
-	exec $CC $CPPFLAGS -c $CFLAGS "\$@"
+	exec ${CC:?} ${CPPFLAGS?} ${CFLAGS?} ${LDFLAGS?} "\$@" ${LDLIBS?}
 EOF

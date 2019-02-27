@@ -1,12 +1,12 @@
 set -e
 exec >&2
 
-redo-ifchange config.sh redo redo-ifchange redo-ifcreate
+xargs -d '\n' -a env/PROGS redo-ifchange config.sh
 
 . ./config.sh
 
-: ${DESTDIR?must be set}
-: ${PREFIX?must be set}
+: ${DESTDIR?}
+: ${PREFIX?}
 
 mkdir -p "${DESTDIR}/${PREFIX}/bin/"
-cp -v -u -t "${DESTDIR}/${PREFIX}/bin/" redo redo-ifchange redo-ifcreate
+xargs -d '\n' -a env/PROGS cp -v -u -t "${DESTDIR}/${PREFIX}/bin/"

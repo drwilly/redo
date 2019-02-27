@@ -1,7 +1,6 @@
 set -e
 
 rm -f -- *.prereqs
-rm -f -- *.d
-rm -f -- *.o
-rm -f -- cc ld
-rm -f -- redo redo-ifchange redo-ifcreate
+rm -f -- *.d *.o
+rm -f -- cc
+xargs -d '\n' -a env/PROGS rm -f --
