@@ -4,10 +4,9 @@ before_install:
     - wget http://skarnet.org/software/skalibs/skalibs-${V}.tar.gz
     - tar xf skalibs-${V}.tar.gz
     - ( cd skalibs-${V}/ && ./configure && make -j "$(nproc)" && sudo make install )
-    - ./bootstrap/redo config.sh cc ld
+    - ./bootstrap/redo config.sh cc
     - cat config.sh
     - cat cc
-    - cat ld
 script:
     - ./bootstrap/redo all
 compiler:
